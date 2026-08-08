@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>BrandDNA</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      /*
+        Se ejecuta antes de pintar nada, a propósito.
+
+        Si el tema se aplicara desde React, el navegador mostraría un instante
+        la app en claro antes de cambiar a oscuro. Ese parpadeo se ve y molesta.
+        Aquí el atributo ya está puesto cuando llega el primer pixel.
+      */
+      (function () {
+        try {
+          var guardado = localStorage.getItem('branddna-theme');
+          var prefiereOscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute(
+            'data-theme',
+            guardado || (prefiereOscuro ? 'dark' : 'light')
+          );
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

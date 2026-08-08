@@ -1,0 +1,136 @@
+/*
+  Tokens de diseño de BrandDNA.
+
+  Vienen del prototipo de Claude Design
+  (prototypes/BrandDNA web app prototipo/BrandDNA.dc.html), copiados con los
+  mismos valores y los mismos nombres. Se conservan tal cual a propósito: así
+  el diseño implementado es idéntico al aprobado, no "parecido", y cualquier
+  ajuste futuro del prototipo se puede trasladar comparando este archivo.
+
+  Nomenclatura:
+    --s0..s3   superficies (s0 = fondo de la app, s1 = tarjetas)
+    --p1,--p2  fondo de página (el degradado exterior)
+    --b0..b2   bordes, de más marcado a más sutil
+    --t0..t6   texto, de más contrastado a más tenue
+    --acc      color de acento (terracota); -h hover, -t texto, -soft fondo
+    --ok       verde de confirmación / estado aprobado
+    --warn     rojo de advertencia
+    --st-*     colores de estado de una pieza (d = borrador, p = publicado;
+               el estado aprobado reutiliza --ok)
+*/
+
+:root,
+[data-theme='light'] {
+  --s0: #fdfaf5;
+  --s1: #ffffff;
+  --s2: #f5eee3;
+  --s3: #f1e9dd;
+  --p1: #f6efe5;
+  --p2: #ebe1d4;
+
+  --b0: #d8cbb8;
+  --b1: #e3d9cb;
+  --b2: #eee5d9;
+
+  --t0: #2e2620;
+  --t1: #3a312a;
+  --t2: #4a3f35;
+  --t3: #7c6e60;
+  --t4: #8a7a68;
+  --t5: #a2917c;
+  --t6: #c2b4a2;
+
+  --acc: oklch(0.55 0.12 40);
+  --acc-h: oklch(0.45 0.12 40);
+  --acc-t: oklch(0.5 0.12 40);
+  --acc-soft: oklch(0.97 0.02 40);
+  --on-acc: #fff8f0;
+
+  --ok: oklch(0.62 0.1 155);
+  --ok-h: oklch(0.54 0.1 155);
+  --ok-t: oklch(0.46 0.1 155);
+  --ok-soft: oklch(0.96 0.03 155);
+
+  --warn: oklch(0.62 0.12 30);
+  --warn-t: oklch(0.52 0.12 30);
+
+  --st-d: oklch(0.74 0.09 80);
+  --st-d-s: oklch(0.96 0.03 80);
+  --st-p: oklch(0.6 0.08 250);
+  --st-p-s: oklch(0.96 0.02 250);
+
+  --shadow: rgba(60, 42, 24, 0.35);
+  --shadow2: rgba(60, 42, 24, 0.25);
+  --hairline: rgba(60, 42, 24, 0.08);
+}
+
+[data-theme='dark'] {
+  --s0: #1a1715;
+  --s1: #231f1c;
+  --s2: #2a2521;
+  --s3: #302a26;
+  --p1: #151211;
+  --p2: #100e0d;
+
+  --b0: #4a423b;
+  --b1: #39322d;
+  --b2: #2f2925;
+
+  --t0: #f4efe8;
+  --t1: #e8e1d8;
+  --t2: #d5ccc1;
+  --t3: #b3a899;
+  --t4: #9c9184;
+  --t5: #8a7f73;
+  --t6: #5f564e;
+
+  --acc: oklch(0.68 0.11 45);
+  --acc-h: oklch(0.76 0.1 45);
+  --acc-t: oklch(0.76 0.1 45);
+  --acc-soft: oklch(0.29 0.04 45);
+  --on-acc: #1a1715;
+
+  --ok: oklch(0.7 0.1 155);
+  --ok-h: oklch(0.78 0.09 155);
+  --ok-t: oklch(0.76 0.09 155);
+  --ok-soft: oklch(0.28 0.04 155);
+
+  --warn: oklch(0.68 0.11 30);
+  --warn-t: oklch(0.74 0.1 30);
+
+  --st-d: oklch(0.78 0.09 80);
+  --st-d-s: oklch(0.3 0.04 80);
+  --st-p: oklch(0.7 0.08 250);
+  --st-p-s: oklch(0.29 0.03 250);
+
+  --shadow: rgba(0, 0, 0, 0.55);
+  --shadow2: rgba(0, 0, 0, 0.45);
+  --hairline: rgba(255, 255, 255, 0.07);
+}
+
+/*
+  Estos no estaban en el prototipo como variables: allí los radios y tamaños
+  iban escritos a mano en cada elemento. Se extraen a una escala para que los
+  componentes nuevos no inventen valores intermedios.
+*/
+:root {
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 22px;
+  --space-6: 28px;
+
+  /* Ancho de lectura cómodo. El prototipo era un teléfono de 412px fijo;
+     aquí es un máximo, no una jaula: en escritorio la app respira. */
+  --content-max: 520px;
+}

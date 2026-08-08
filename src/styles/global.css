@@ -1,0 +1,110 @@
+/*
+  Estilos base de la app. Todo lo que no es un componente concreto.
+  Los colores nunca se escriben aquí a mano: siempre vienen de theme.css.
+*/
+
+@import './theme.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--t1);
+  /* El degradado del prototipo, ahora a pantalla completa en vez de detrás
+     de un marco de teléfono. */
+  background: radial-gradient(120% 80% at 50% 0%, var(--p1) 0%, var(--p2) 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.25s ease;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  color: var(--t0);
+  line-height: 1.1;
+  margin: 0;
+  /* Evita que un título parta dejando una palabra sola en la última línea. */
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--acc);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--acc-h);
+}
+
+input,
+textarea,
+button,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+::placeholder {
+  color: var(--t5);
+}
+
+/* Un foco visible y consistente en toda la app: es lo que permite usarla
+   solo con teclado. :focus-visible no molesta al que usa el ratón. */
+:focus-visible {
+  outline: 2px solid var(--acc-t);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Animaciones del prototipo --- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Quien pide menos movimiento en su sistema operativo, lo recibe. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
