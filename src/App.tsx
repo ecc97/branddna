@@ -8,8 +8,18 @@
 
 import { useState } from 'react';
 
+import {
+  API_BASE_URL,
+  ApiError,
+  generarContenido,
+  listarPerfiles,
+  obtenerPerfil,
+  type Channel,
+} from './api';
 import { useTheme } from './theme/theme-context';
 import s from './App.module.css';
+
+const UUID_INEXISTENTE = '11111111-1111-1111-1111-111111111111';
 
 const SUPERFICIES = ['--s0', '--s1', '--s2', '--s3', '--p1', '--p2'];
 const BORDES = ['--b0', '--b1', '--b2'];
@@ -37,9 +47,31 @@ function Swatches({ tokens }: { tokens: string[] }) {
   );
 }
 
+type EstadoPrueba = 'idle' | 'cargando' | 'ok' | 'error';
+
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [canalActivo, setCanalActivo] = useState('Instagram');
+
+  const [estado, setEstado] = useState<EstadoPrueba>('idle');
+  const [salida, setSalida] = useState('');
+
+  async function probar(etiqueta: string, accion: () => Promise<unknown>) {
+    setEstado('cargando');
+    setSalida(`${etiqueta}…`);
+    try {
+      const resultado = await accion();
+      setEstado('ok');
+      setSalida(JSON.stringify(resultado, null, 2));
+    } catch (error) {
+      setEstado('error');
+      setSalida(
+        error instanceof ApiError
+          ? `HTTP ${error.status}\n\n${error.message}`
+          : String(error)
+      );
+    }
+  }
 
   return (
     <div className={s.shell}>
@@ -141,10 +173,72 @@ export default function App() {
         <button className={s.cta}>Generar 3 opciones</button>
       </section>
 
+      <section className={s.section}>
+        <div className={s.sectionTitle}>Paso 2 · Capa de API</div>
+        <p className={s.apiBase}>
+          Backend: <code>{API_BASE_URL}</code>
+        </p>
+        <div className={s.row}>
+          <button
+            className={s.secondary}
+            onClick={() => probar('Listando perfiles', () => listarPerfiles())}
+          >
+            Listar perfiles
+          </button>
+          <button
+            className={s.secondary}
+            onClick={() =>
+              probar('Pidiendo un perfil inexistente', () => obtenerPerfil(UUID_INEXISTENTE))
+            }
+          >
+            Provocar un 404
+          </button>
+          <button
+            className={s.secondary}
+            onClick={() =>
+              probar('Enviando un canal inválido', () =>
+                generarContenido({
+                  profile_id: UUID_INEXISTENTE,
+                  // `as Channel` es a propósito: TypeScript rechaza 'TikTok',
+                  // hay que forzarlo para poder provocar el 422 del backend.
+                  channel: 'TikTok' as Channel,
+                  piece_type: 'post',
+                  topic: 'prueba',
+                })
+              )
+            }
+          >
+            Provocar un 422
+          </button>
+        </div>
+        {salida && (
+          <pre
+            className={s.salida}
+            data-estado={estado}
+            style={{
+              borderColor:
+                estado === 'error'
+                  ? 'var(--warn)'
+                  : estado === 'ok'
+                    ? 'var(--ok)'
+                    : 'var(--b1)',
+            }}
+          >
+            {salida}
+          </pre>
+        )}
+      </section>
+
       <p className={s.note}>
-        Si los colores cambian al pulsar el botón de tema y siguen ahí al recargar la
-        página, el paso 1 está correcto. Los títulos deben verse en Instrument Serif y
-        el resto en Instrument Sans.
+        <strong>Paso 1:</strong> si los colores cambian al pulsar el botón de tema y
+        siguen ahí al recargar, está correcto. Los títulos van en Instrument Serif y el
+        resto en Instrument Sans.
+        <br />
+        <br />
+        <strong>Paso 2:</strong> con el backend corriendo, «Listar perfiles» debe
+        devolver la Panadería Luz. Los otros dos botones deben mostrar mensajes de error
+        <em> en español</em>, no el JSON crudo de FastAPI. También tienes{' '}
+        <code>window.api</code> en la consola.
       </p>
     </div>
   );
