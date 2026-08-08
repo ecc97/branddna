@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { useTheme } from './theme/ThemeProvider';
+import { useTheme } from './theme/theme-context';
 import s from './App.module.css';
 
 const SUPERFICIES = ['--s0', '--s1', '--s2', '--s3', '--p1', '--p2'];
