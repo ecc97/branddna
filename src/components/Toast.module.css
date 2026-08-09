@@ -1,0 +1,23 @@
+.toast {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: 96px;
+  max-width: calc(var(--content-max) - var(--space-5) * 2);
+  margin: 0 auto;
+  padding: 13px 16px;
+  border-radius: 13px;
+  background: var(--t0);
+  color: var(--p1);
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 10px 24px -10px var(--shadow2);
+  animation: rise 0.3s ease both;
+  z-index: 20;
+}
+
+.error {
+  composes: toast;
+  background: var(--warn);
+  color: var(--on-acc);
+}

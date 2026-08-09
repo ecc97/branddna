@@ -1,0 +1,119 @@
+.cabecera {
+  margin-bottom: var(--space-6);
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t5);
+}
+
+.titulo {
+  font-size: 34px;
+  margin: var(--space-2) 0 6px;
+}
+
+.lead {
+  color: var(--t3);
+  font-size: 15px;
+}
+
+.selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-size: 13px;
+  color: var(--t4);
+}
+
+.select {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--t1);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.ejemplos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-xl);
+  padding: var(--space-4);
+}
+
+.ejemplosTitulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.ejemploCabecera {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.ejemploBueno {
+  composes: ejemploCabecera;
+  color: var(--ok-t);
+}
+
+.ejemploMalo {
+  composes: ejemploCabecera;
+  color: var(--warn-t);
+}
+
+.punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.guardar {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--r-lg);
+  background: var(--acc);
+  color: var(--on-acc);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.guardar:hover:not(:disabled) {
+  background: var(--acc-h);
+}
+
+.guardar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.errorGeneral {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--warn-t);
+  font-size: 14px;
+  line-height: 1.45;
+}
