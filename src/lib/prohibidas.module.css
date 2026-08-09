@@ -1,0 +1,7 @@
+.marca {
+  background: var(--warn);
+  color: var(--on-acc);
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: 600;
+}
