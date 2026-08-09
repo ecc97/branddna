@@ -1,0 +1,83 @@
+.volver {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  color: var(--t4);
+  cursor: pointer;
+}
+
+.volver:hover {
+  color: var(--t1);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--space-4);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.tema {
+  margin-top: var(--space-3);
+  font-size: 15px;
+  color: var(--t3);
+}
+
+.texto {
+  margin-top: var(--space-4);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-xl);
+  padding: var(--space-5);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--t1);
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+
+.fecha {
+  margin-top: var(--space-4);
+  font-size: 14px;
+  color: var(--t3);
+}
+
+.pendiente {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px dashed var(--b0);
+  border-radius: var(--r-xl);
+  color: var(--t4);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.aviso {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--warn-t);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cargando {
+  margin-top: var(--space-5);
+  color: var(--t4);
+  font-size: 14px;
+}
