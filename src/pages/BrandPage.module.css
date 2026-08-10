@@ -23,9 +23,45 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
   margin-top: var(--space-4);
   font-size: 13px;
   color: var(--t4);
+}
+
+.enlace {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--acc-t);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+.acciones {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.cancelar {
+  padding: 16px 20px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-lg);
+  background: var(--s1);
+  color: var(--t3);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelar:hover:not(:disabled) {
+  background: var(--s2);
 }
 
 .select {
@@ -87,7 +123,7 @@
 }
 
 .guardar {
-  width: 100%;
+  flex: 1;
   padding: 16px;
   border: none;
   border-radius: var(--r-lg);

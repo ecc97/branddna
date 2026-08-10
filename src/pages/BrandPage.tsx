@@ -1,14 +1,18 @@
 /*
   Pantalla del perfil de marca (Flujos 1 y 4 del PRD).
 
-  Sirve para dos situaciones con la misma forma:
-  - Primera vez, sin ningún perfil: crea el primero y entra a la app.
-  - Edición: modifica el existente.
+  Cubre tres situaciones con el mismo formulario:
+  - **Alta inicial**: no hay ningún perfil todavía.
+  - **Edición**: modificar el perfil activo.
+  - **Marca nueva**: crear otra cuando ya existe alguna.
 
-  Regla dura del PRD que conviene tener presente al leer esto: editar el perfil
-  NO reescribe las piezas ya guardadas. El perfil es contexto para generar
-  contenido nuevo, no una plantilla que se reaplique a lo aprobado. Por eso
-  aquí no hay ninguna llamada que toque `/pieces`.
+  Las tres se reducen a una sola pregunta —¿esto crea o actualiza?— resuelta
+  por `esAlta`. Mantener tres ramas separadas es justo donde aparecen los bugs
+  de "guardé y se sobrescribió lo que no tocaba".
+
+  Regla dura del PRD que se respeta por construcción: editar el perfil NO
+  reescribe las piezas ya guardadas. En este archivo no hay ninguna llamada
+  que toque `/pieces`; no puede pasar por accidente.
 */
 
 import { useState, type FormEvent } from 'react';
@@ -72,7 +76,10 @@ export function BrandPage() {
   const { perfilActivo, perfiles, registrarPerfil, seleccionar } = useProfile();
   const navegar = useNavigate();
 
-  const esPrimeraVez = perfilActivo === null;
+  /** 'nueva' es una marca adicional; el alta inicial no necesita modo. */
+  const [modo, setModo] = useState<'editar' | 'nueva'>('editar');
+  const esAlta = perfilActivo === null || modo === 'nueva';
+  const esPrimeraDeTodas = perfilActivo === null;
 
   const [datos, setDatos] = useState<Formulario>(() =>
     perfilActivo ? desdePerfil(perfilActivo) : VACIO
@@ -92,6 +99,20 @@ export function BrandPage() {
       delete siguiente[campo];
       return siguiente;
     });
+  }
+
+  function empezarMarcaNueva() {
+    setModo('nueva');
+    setDatos(VACIO);
+    setErrores({});
+    setErrorGeneral(null);
+  }
+
+  function cancelarMarcaNueva() {
+    setModo('editar');
+    setDatos(perfilActivo ? desdePerfil(perfilActivo) : VACIO);
+    setErrores({});
+    setErrorGeneral(null);
   }
 
   function validar(): boolean {
@@ -121,18 +142,23 @@ export function BrandPage() {
 
     setGuardando(true);
     try {
-      const guardado = perfilActivo
-        ? await actualizarPerfil(perfilActivo.id, cuerpo)
-        : await crearPerfil(cuerpo);
+      const guardado = esAlta
+        ? await crearPerfil(cuerpo)
+        : await actualizarPerfil(perfilActivo!.id, cuerpo);
 
       registrarPerfil(guardado);
       setDatos(desdePerfil(guardado));
+      setModo('editar');
 
-      if (esPrimeraVez) {
-        // Recién creado: lo natural es llevarle a generar su primer contenido.
+      if (esPrimeraDeTodas) {
+        // Recién creada la primera: lo natural es llevarle a generar.
         navegar('/generar');
       } else {
-        setAviso({ mensaje: 'Voz actualizada. Se aplica al contenido nuevo.' });
+        setAviso({
+          mensaje: esAlta
+            ? `«${guardado.business_name}» creada y activa.`
+            : 'Voz actualizada. Se aplica al contenido nuevo.',
+        });
       }
     } catch (fallo) {
       setErrorGeneral(
@@ -146,35 +172,46 @@ export function BrandPage() {
   return (
     <>
       <header className={s.cabecera}>
-        <div className={s.eyebrow}>Perfil de marca</div>
-        <h1 className={s.titulo}>Tu voz, una sola vez.</h1>
+        <div className={s.eyebrow}>{esAlta ? 'Nueva marca' : 'Perfil de marca'}</div>
+        <h1 className={s.titulo}>
+          {esAlta ? 'Define su voz.' : 'Tu voz, una sola vez.'}
+        </h1>
         <p className={s.lead}>
-          {esPrimeraVez
+          {esPrimeraDeTodas
             ? 'Ocho respuestas cortas. Después la app escribe como escribes tú.'
-            : 'Los cambios se aplican al contenido nuevo. Lo que ya guardaste no se toca.'}
+            : esAlta
+              ? 'Cada marca tiene su propia voz, sus palabras y sus prohibiciones.'
+              : 'Los cambios se aplican al contenido nuevo. Lo que ya guardaste no se toca.'}
         </p>
 
         {/* Sin autenticación pueden convivir varias marcas en la misma base.
-            Sin este selector, la app se quedaría atada a la primera. */}
-        {perfiles.length > 1 && perfilActivo && (
+            Sin esto, la app se quedaría atada a la primera. */}
+        {!esAlta && perfilActivo && (
           <div className={s.selector}>
-            <label htmlFor="cambiar-marca">Marca activa:</label>
-            <select
-              id="cambiar-marca"
-              className={s.select}
-              value={perfilActivo.id}
-              onChange={(e) => {
-                seleccionar(e.target.value);
-                const elegido = perfiles.find((p) => p.id === e.target.value);
-                if (elegido) setDatos(desdePerfil(elegido));
-              }}
-            >
-              {perfiles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.business_name}
-                </option>
-              ))}
-            </select>
+            {perfiles.length > 1 && (
+              <>
+                <label htmlFor="cambiar-marca">Marca activa:</label>
+                <select
+                  id="cambiar-marca"
+                  className={s.select}
+                  value={perfilActivo.id}
+                  onChange={(e) => {
+                    seleccionar(e.target.value);
+                    const elegido = perfiles.find((p) => p.id === e.target.value);
+                    if (elegido) setDatos(desdePerfil(elegido));
+                  }}
+                >
+                  {perfiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.business_name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            <button type="button" className={s.enlace} onClick={empezarMarcaNueva}>
+              + Nueva marca
+            </button>
           </div>
         )}
       </header>
@@ -271,9 +308,27 @@ export function BrandPage() {
           </div>
         )}
 
-        <button className={s.guardar} type="submit" disabled={guardando}>
-          {guardando ? 'Guardando…' : esPrimeraVez ? 'Guardar mi voz' : 'Guardar cambios'}
-        </button>
+        <div className={s.acciones}>
+          <button className={s.guardar} type="submit" disabled={guardando}>
+            {guardando
+              ? 'Guardando…'
+              : esPrimeraDeTodas
+                ? 'Guardar mi voz'
+                : esAlta
+                  ? 'Crear marca'
+                  : 'Guardar cambios'}
+          </button>
+          {modo === 'nueva' && (
+            <button
+              type="button"
+              className={s.cancelar}
+              onClick={cancelarMarcaNueva}
+              disabled={guardando}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
 
       <Toast aviso={aviso} onCerrar={() => setAviso(null)} />

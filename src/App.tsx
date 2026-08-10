@@ -19,7 +19,6 @@ import { API_BASE_URL } from './api';
 import { AppShell } from './components/AppShell';
 import { BrandPage } from './pages/BrandPage';
 import { CalendarPage } from './pages/CalendarPage';
-import { DesignPage } from './pages/DesignPage';
 import { GeneratePage } from './pages/GeneratePage';
 import { PiecePage } from './pages/PiecePage';
 import { ProfilePicker } from './pages/ProfilePicker';
@@ -95,8 +94,6 @@ function Contenido() {
         <Route path="/calendario" element={<CalendarPage />} />
         <Route path="/pieza/:id" element={<PiecePage />} />
         <Route path="/marca" element={<BrandPage />} />
-        {/* Referencia de diseño, sin enlace en la barra. Se borra en el paso 7. */}
-        <Route path="/diseno" element={<DesignPage />} />
         <Route path="*" element={<Navigate to="/generar" replace />} />
       </Routes>
     </AppShell>

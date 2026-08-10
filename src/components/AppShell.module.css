@@ -32,6 +32,33 @@
   padding: var(--space-2) var(--space-2) var(--space-3);
 }
 
+/*
+  En pantalla ancha la barra deja de ser una franja de lado a lado y pasa a ser
+  una pastilla flotante centrada.
+
+  El motivo no es estético: una franja del ancho de un monitor con cuatro
+  botones agrupados en el centro parece un diseño móvil estirado por descuido.
+  La pastilla, en cambio, se lee como una decisión.
+*/
+@media (min-width: 768px) {
+  .barra {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: var(--space-5);
+    width: min(var(--content-max), calc(100% - var(--space-5) * 2));
+    border: 1px solid var(--b1);
+    border-radius: var(--r-pill);
+    background: var(--s1);
+    box-shadow: 0 12px 32px -14px var(--shadow);
+    padding-bottom: 0;
+  }
+
+  .barraInterior {
+    padding: var(--space-2);
+  }
+}
+
 .tab {
   flex: 1;
   display: flex;

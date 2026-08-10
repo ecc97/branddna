@@ -1,32 +1,69 @@
-# React + TypeScript + Vite
+# BrandDNA · frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite. Habla con el backend FastAPI de `../backend`.
 
-Currently, two official plugins are available:
+## Poner en marcha
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+El backend tiene que estar corriendo primero:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd ../backend
+./venv/Scripts/python.exe -m uvicorn main:app --reload
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Después:
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
+
+Si el backend no está en `http://127.0.0.1:8000`, copia `.env.example` como
+`.env` y ajusta `VITE_API_URL`.
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo con recarga en caliente |
+| `npm run build` | **Comprueba tipos y compila.** Es la orden fiable para validar tipos |
+| `npm run lint` | oxlint |
+| `npm run preview` | Sirve el resultado de `build` |
+
+> `npx tsc --noEmit` **no comprueba nada** en este proyecto: Vite usa
+> *project references* y el `tsconfig.json` de la raíz solo apunta a los
+> otros dos. Usa `npm run build`.
+
+## Estructura
+
+```
+src/
+├── api/          capa de datos: tipos, cliente fetch y un módulo por recurso
+├── components/   piezas reutilizables (formularios, barra, avisos)
+├── lib/          lógica pura sin React (fechas, palabras prohibidas)
+├── pages/        una por pantalla
+├── profile/      resolución del perfil de marca activo
+├── styles/       tokens de diseño y estilos base
+└── theme/        tema claro / oscuro
+```
+
+## Reglas del proyecto
+
+**Los colores nunca se escriben a mano.** Salen de los tokens de
+`styles/theme.css`, copiados del prototipo de Claude Design. Un `#fff` suelto
+rompe el tema oscuro.
+
+**Los tipos de `api/types.ts` son un espejo del backend.** Mismos nombres
+(`is_clean`, no `isClean`) y mismos valores de enum (`promocion`,
+`Instagram`). La única traducción es a etiquetas de pantalla, en `api/labels.ts`.
+
+**Las fechas sin hora se tratan como texto.** Nunca `new Date("2026-09-15")`:
+eso da el día anterior en cualquier zona con desfase negativo. Ver
+`lib/fechas.ts`.
+
+**Toda la interfaz en español neutro**, sin voseo, igual que los prompts.
+
+## Documentación
+
+- Decisiones y su porqué: `../docs/bitacora/` (entradas 04 a 10)
+- Prototipo de origen: `../prototypes/BrandDNA web app prototipo/`

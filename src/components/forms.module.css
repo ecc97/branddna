@@ -117,7 +117,13 @@
 
 .quitarTag:hover {
   opacity: 1;
-  background: rgb(0 0 0 / 8%);
+  /*
+    El tinte se deriva del color del propio chip en vez de ser un negro fijo.
+    Un `rgb(0 0 0 / 8%)` funciona sobre el chip claro del tema claro y es
+    invisible sobre el oscuro: el mismo motivo por el que en este proyecto
+    ningún color se escribe a mano.
+  */
+  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 /* --- ToneSelector --- */
