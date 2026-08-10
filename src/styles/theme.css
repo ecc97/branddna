@@ -21,6 +21,14 @@
 
 :root,
 [data-theme='light'] {
+  /*
+    `color-scheme` no es decorativo: le dice al navegador de qué color pintar
+    lo que dibuja él y nosotros no controlamos — el calendario emergente de
+    <input type="date">, las barras de desplazamiento, los menús de <select>.
+    Sin esto, en tema oscuro se abriría un calendario blanco deslumbrante.
+  */
+  color-scheme: light;
+
   --s0: #fdfaf5;
   --s1: #ffffff;
   --s2: #f5eee3;
@@ -65,6 +73,8 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
+
   --s0: #1a1715;
   --s1: #231f1c;
   --s2: #2a2521;

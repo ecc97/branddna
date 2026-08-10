@@ -1,0 +1,99 @@
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.paso {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.paso:hover:not(:disabled) {
+  background: var(--s2);
+}
+
+.paso:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/*
+  El campo nativo. Se puede dar estilo al recuadro, al texto y al icono;
+  el calendario que se abre lo pinta el navegador y no se puede tocar.
+  Por eso `color-scheme` en theme.css: es lo único que hace que ese
+  calendario respete el tema claro/oscuro.
+*/
+.campo {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  padding: 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--t1);
+  background: var(--s2);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.campo:hover {
+  border-color: var(--b1);
+}
+
+.atajos {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.atajo {
+  padding: 7px 12px;
+  border: 1px dashed var(--b0);
+  background: transparent;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  color: var(--t4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atajo:hover {
+  border-color: var(--t3);
+  color: var(--t2);
+}
+
+.quitar {
+  composes: atajo;
+}
+
+.quitar:hover {
+  border-color: var(--warn);
+  color: var(--warn-t);
+}
+
+.leyenda {
+  font-size: 13px;
+  color: var(--t4);
+  line-height: 1.45;
+}
