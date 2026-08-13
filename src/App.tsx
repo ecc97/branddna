@@ -39,7 +39,7 @@ export default function App() {
 function AppRoutes() {
   const { state, error, reload } = useProfile();
 
-  if (state === 'cargando') {
+  if (state === 'loading') {
     return (
       <div className={s.pantalla}>
         <div className={s.caja}>
@@ -74,7 +74,7 @@ function AppRoutes() {
 
   // Primera vez: la pantalla de marca sin barra de navegación, porque
   // todavía no hay ningún sitio al que navegar.
-  if (state === 'sin-perfiles') {
+  if (state === 'no-profiles') {
     return (
       <div className={s.alta}>
         <BrandPage />
@@ -82,7 +82,7 @@ function AppRoutes() {
     );
   }
 
-  if (state === 'eligiendo') {
+  if (state === 'choosing') {
     return <ProfilePicker />;
   }
 

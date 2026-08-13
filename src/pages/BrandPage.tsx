@@ -2,25 +2,32 @@
   Pantalla del perfil de marca (Flujos 1 y 4 del PRD).
 
   Cubre tres situaciones con el mismo formulario:
-  - **Alta inicial**: no hay ningún perfil todavía.
-  - **Edición**: modificar el perfil activo.
+  - **Alta inicial**: no hay ninguna marca todavía.
+  - **Edición**: modificar la marca activa.
   - **Marca nueva**: crear otra cuando ya existe alguna.
 
   Las tres se reducen a una sola pregunta —¿esto crea o actualiza?— resuelta
-  por `esAlta`. Mantener tres ramas separadas es justo donde aparecen los bugs
-  de "guardé y se sobrescribió lo que no tocaba".
+  por `isCreating`. Mantener tres ramas separadas es justo donde aparecen los
+  bugs de "guardé y se sobrescribió lo que no tocaba".
 
   Regla dura del PRD que se respeta por construcción: editar el perfil NO
   reescribe las piezas ya guardadas. En este archivo no hay ninguna llamada
   que toque `/pieces`; no puede pasar por accidente.
 */
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 
-import { ApiError, updateProfile, createProfile, type BrandProfile } from '../api';
+import {
+  ApiError,
+  createProfile,
+  rotateToken,
+  updateProfile,
+  type BrandProfile,
+} from '../api';
 import { TagInput } from '../components/TagInput';
 import { TextArea, TextInput } from '../components/TextInput';
+import { KeySettings, NewKeyPanel } from '../components/TokenPanel';
 import { ToneSelector } from '../components/ToneSelector';
 import { Toast, type Notice } from '../components/Toast';
 import { useProfile } from '../profile/profile-context';
@@ -73,7 +80,8 @@ const REQUIRED_FIELDS: { field: keyof BrandForm; notice: string }[] = [
 ];
 
 export function BrandPage() {
-  const { activeProfile, profiles, registerProfile, selectProfile } = useProfile();
+  const { activeProfile, activeToken, profiles, registerProfile, selectProfile } =
+    useProfile();
   const navigate = useNavigate();
 
   /** 'nueva' es una marca adicional; el alta inicial no necesita modo. */
@@ -88,6 +96,19 @@ export function BrandPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  /** Llave recién emitida. Solo se ve una vez, justo al crear la marca. */
+  const [newKey, setNewKey] = useState<string | null>(null);
+
+  /*
+    Al cambiar de marca activa, el formulario pasa a mostrar la nueva.
+    Se observa el id y no el objeto: guardar cambios en la MISMA marca
+    devuelve un objeto distinto, y eso no debe descartar lo que se escribió.
+  */
+  const activeId = activeProfile?.id;
+  useEffect(() => {
+    if (activeProfile && mode === 'editar') setForm(fromProfile(activeProfile));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
 
   function updateField<C extends keyof BrandForm>(field: C, value: BrandForm[C]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -106,6 +127,7 @@ export function BrandPage() {
     setForm(EMPTY_FORM);
     setErrors({});
     setFormError(null);
+    setNewKey(null);
   }
 
   function cancelNewBrand() {
@@ -142,23 +164,21 @@ export function BrandPage() {
 
     setSaving(true);
     try {
-      const saved = isCreating
-        ? await createProfile(payload)
-        : await updateProfile(activeProfile!.id, payload);
-
-      registerProfile(saved);
-      setForm(fromProfile(saved));
-      setMode('editar');
-
-      if (isFirstEver) {
-        // Recién creada la primera: lo natural es llevarle a generar.
-        navigate('/generar');
+      if (isCreating) {
+        const created = await createProfile(payload);
+        // La llave viaja solo en esta respuesta: se entrega al provider para
+        // que la recuerde, y se muestra una vez en pantalla.
+        registerProfile(created, created.access_token);
+        setForm(fromProfile(created));
+        setMode('editar');
+        setNewKey(created.access_token);
+        // Antes se navegaba a /generar al crear la primera marca. Ya no:
+        // primero hay que enseñar la llave, porque es la única vez que se ve.
       } else {
-        setNotice({
-          message: isCreating
-            ? `«${saved.business_name}» creada y activa.`
-            : 'Voz actualizada. Se aplica al contenido nuevo.',
-        });
+        const saved = await updateProfile(activeProfile!.id, payload);
+        registerProfile(saved);
+        setForm(fromProfile(saved));
+        setNotice({ message: 'Voz actualizada. Se aplica al contenido nuevo.' });
       }
     } catch (failure) {
       setFormError(
@@ -167,6 +187,22 @@ export function BrandPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleRotate(): Promise<string | null> {
+    if (!activeProfile) return 'No hay marca activa.';
+    try {
+      const { access_token } = await rotateToken(activeProfile.id);
+      registerProfile(activeProfile, access_token);
+      return null;
+    } catch (failure) {
+      return failure instanceof ApiError ? failure.message : 'No se pudo rotar la llave.';
+    }
+  }
+
+  async function switchBrand(id: string) {
+    const failure = await selectProfile(id);
+    if (failure) setFormError(failure);
   }
 
   return (
@@ -195,11 +231,7 @@ export function BrandPage() {
                   id="cambiar-marca"
                   className={s.select}
                   value={activeProfile.id}
-                  onChange={(e) => {
-                    selectProfile(e.target.value);
-                    const chosen = profiles.find((p) => p.id === e.target.value);
-                    if (chosen) setForm(fromProfile(chosen));
-                  }}
+                  onChange={(e) => void switchBrand(e.target.value)}
                 >
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -215,6 +247,22 @@ export function BrandPage() {
           </div>
         )}
       </header>
+
+      {newKey && activeProfile && (
+        <div className={s.llaveNueva}>
+          <NewKeyPanel businessName={activeProfile.business_name} token={newKey} />
+          <button
+            type="button"
+            className={s.continuar}
+            onClick={() => {
+              setNewKey(null);
+              navigate('/generar');
+            }}
+          >
+            Ya la guardé, vamos a generar
+          </button>
+        </div>
+      )}
 
       <form className={s.formulario} onSubmit={submit} noValidate>
         <TextInput
@@ -330,6 +378,16 @@ export function BrandPage() {
           )}
         </div>
       </form>
+
+      {!isCreating && activeProfile && (
+        <div className={s.seccionLlave}>
+          <KeySettings
+            businessName={activeProfile.business_name}
+            token={activeToken}
+            onRotate={handleRotate}
+          />
+        </div>
+      )}
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
     </>

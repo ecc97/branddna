@@ -49,11 +49,38 @@ export interface BrandProfileInput {
 /** El PUT es parcial: solo se escriben los campos enviados. */
 export type BrandProfileUpdate = Partial<BrandProfileInput>;
 
-/** Lo que devuelve la API. */
+/** Lo que devuelve la API. Exige la llave de acceso de esa marca. */
 export interface BrandProfile extends Required<BrandProfileInput> {
   id: string;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Lo único que devuelve el listado público `GET /profiles`.
+ *
+ * Sin tono, sin prohibiciones, sin ejemplos: eso exige la llave. El listado
+ * existe para poder ofrecer un selector de marca al arrancar, no para exponer
+ * el perfil.
+ */
+export interface BrandProfileSummary {
+  id: string;
+  business_name: string;
+}
+
+/**
+ * Respuesta de la creación: la única vez que se ve la llave en claro.
+ *
+ * A partir de ahí el backend solo guarda su hash, así que ni él mismo puede
+ * volver a mostrarla.
+ */
+export interface BrandProfileCreated extends BrandProfile {
+  access_token: string;
+}
+
+/** Respuesta al rotar la llave. La anterior deja de servir al instante. */
+export interface TokenRotated {
+  access_token: string;
 }
 
 // --------------------------------------------------------------------------

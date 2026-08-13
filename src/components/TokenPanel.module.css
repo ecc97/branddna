@@ -1,0 +1,145 @@
+/* --- Panel de marca recién creada: tiene que llamar la atención --- */
+.callout {
+  border: 1.5px solid var(--acc);
+  border-radius: var(--r-xl);
+  background: var(--acc-soft);
+  padding: var(--space-4);
+  animation: rise 0.35s ease both;
+}
+
+.calloutTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--acc-t);
+  margin-bottom: 6px;
+}
+
+.calloutText {
+  font-size: 13.5px;
+  color: var(--t2);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}
+
+/* --- Sección dentro de «Mi marca» --- */
+.section {
+  border: 1px solid var(--b1);
+  border-radius: var(--r-xl);
+  background: var(--s2);
+  padding: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 6px;
+}
+
+.sectionText {
+  font-size: 13px;
+  color: var(--t4);
+  line-height: 1.45;
+  margin-bottom: var(--space-3);
+}
+
+/* --- La llave --- */
+.key {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--t0);
+  /* Monoespaciada y con tabular-nums: una llave se lee carácter a carácter,
+     y si hay que compararla a ojo conviene que no bailen los anchos. */
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: break-all;
+  margin-bottom: var(--space-3);
+}
+
+.hidden {
+  composes: key;
+  color: var(--t5);
+  letter-spacing: 0.18em;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.button {
+  padding: 10px 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--s2);
+  border-color: var(--b0);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.primary {
+  composes: button;
+  border-color: transparent;
+  background: var(--acc);
+  color: var(--on-acc);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--acc-h);
+  border-color: transparent;
+}
+
+.danger {
+  composes: button;
+}
+
+.danger:hover:not(:disabled) {
+  color: var(--warn-t);
+  border-color: var(--warn);
+}
+
+.feedback {
+  margin-top: var(--space-3);
+  font-size: 13px;
+  color: var(--ok-t);
+  font-weight: 600;
+}
+
+.warning {
+  composes: feedback;
+  color: var(--warn-t);
+}
+
+.confirm {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md);
+  background: var(--s1);
+}
+
+.confirmText {
+  font-size: 13.5px;
+  color: var(--t2);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}

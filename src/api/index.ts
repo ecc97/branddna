@@ -6,7 +6,7 @@
   pantallas.
 */
 
-export { ApiError, API_BASE_URL } from './client';
+export { ApiError, API_BASE_URL, setBrandToken } from './client';
 
 export * from './types';
 export * from './labels';
@@ -16,6 +16,7 @@ export {
   getProfile,
   createProfile,
   updateProfile,
+  rotateToken,
 } from './profiles';
 
 export { generateContent } from './generate';

@@ -16,6 +16,26 @@ const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000').repla
 /** 20 s cubre de sobra cualquier consulta a Supabase. */
 const DEFAULT_TIMEOUT_MS = 20_000;
 
+/** Cabecera donde viaja la llave de la marca. Debe coincidir con app/auth.py */
+const BRAND_TOKEN_HEADER = 'X-Brand-Token';
+
+/*
+  Llave de la marca activa, a nivel de módulo.
+
+  En esta app **toda** llamada autenticada es de la marca activa, así que un
+  único token evita arrastrarlo por diez sitios y que alguien se olvide en uno.
+  `ProfileProvider` es quien lo fija al resolver el perfil.
+
+  Para el caso puntual de comprobar una llave que el usuario acaba de pegar
+  —cuando todavía no es la marca activa— cada petición admite un `brandToken`
+  propio que tiene prioridad.
+*/
+let activeBrandToken: string | null = null;
+
+export function setBrandToken(token: string | null): void {
+  activeBrandToken = token;
+}
+
 /**
  * Error de la API con el estado HTTP y un mensaje ya listo para mostrar.
  * `status: 0` significa que la petición nunca llegó a salir (red caída,
@@ -147,10 +167,28 @@ interface RequestOptions {
   /** Milisegundos. `/generate` necesita mucho más que el resto. */
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** Llave para esta llamada concreta. Tiene prioridad sobre la activa. */
+  brandToken?: string;
+}
+
+function buildHeaders(body: unknown, brandToken?: string): HeadersInit | undefined {
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+
+  const token = brandToken ?? activeBrandToken;
+  if (token) headers[BRAND_TOKEN_HEADER] = token;
+
+  return Object.keys(headers).length ? headers : undefined;
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, timeoutMs = DEFAULT_TIMEOUT_MS, signal } = options;
+  const {
+    method = 'GET',
+    body,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    signal,
+    brandToken,
+  } = options;
 
   // Se combina el timeout propio con un posible AbortSignal del componente
   // (por ejemplo, si el usuario cambia de pantalla mientras carga).
@@ -161,7 +199,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: buildHeaders(body, brandToken),
       body: body ? JSON.stringify(body) : undefined,
       signal: combinedSignal,
     });
