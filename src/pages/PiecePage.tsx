@@ -17,14 +17,14 @@
   Con un guardado explícito hay una sola petición, el usuario ve cuándo se
   guardó, y "Descartar" devuelve todo a como estaba.
 
-  ── Nota sobre las palabras prohibidas ───────────────────────────────────
+  ── Palabras prohibidas ──────────────────────────────────────────────────
 
-  Aquí NO se resaltan, a diferencia del generador. El generador las conoce
-  porque `/generate` devuelve `forbidden_terms_checked`; extraerlas del texto
-  libre del perfil es lógica que vive en el backend
-  (`brand_guard.extract_forbidden_terms`) y portarla sería una segunda
-  duplicación con más superficie para divergir. Queda anotado como deuda: lo
-  correcto sería que el perfil expusiera ya la lista de términos.
+  El perfil trae `forbidden_terms` ya extraídos por el backend, con la misma
+  función que usa el generador. Así el aviso de aquí y el de allí no pueden
+  divergir, y el cliente no reimplementa esa heurística.
+
+  Se recalcula en cada render: si al corregir un texto se escribe una palabra
+  prohibida, el aviso sale al momento y sin llamar a la API.
 */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -38,12 +38,13 @@ import {
   STATUS_LABELS,
   updatePiece,
   deletePiece,
-  listPieces,
+  getPiece,
   type ContentPiece,
   type ContentPieceUpdate,
   type PieceStatus,
 } from '../api';
 import { DateStepper } from '../components/DateStepper';
+import { findForbidden } from '../lib/forbidden';
 import { Toast, type Notice } from '../components/Toast';
 import { useActiveProfile } from '../profile/profile-context';
 import s from './PiecePage.module.css';
@@ -82,16 +83,15 @@ export function PiecePage() {
       setLoading(true);
       setError(null);
       try {
-        // El backend no tiene GET /pieces/{id}: se pide la lista y se busca.
-        // Ver la deuda anotada en la bitácora 08.
-        const all = await listPieces(profile.id, controller.signal);
-        const found = all.find((p) => p.id === id);
-        if (found) syncFromServer(found);
-        else setError('Esta pieza ya no existe. Puede que la hayas eliminado.');
+        syncFromServer(await getPiece(id!, controller.signal));
       } catch (failure) {
         if (controller.signal.aborted) return;
         setError(
-          failure instanceof ApiError ? failure.message : 'No se pudo cargar la pieza.'
+          failure instanceof ApiError && failure.status === 404
+            ? 'Esta pieza ya no existe. Puede que la hayas eliminado.'
+            : failure instanceof ApiError
+              ? failure.message
+              : 'No se pudo cargar la pieza.'
         );
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -101,6 +101,9 @@ export function PiecePage() {
     void load();
     return () => controller.abort();
   }, [profile.id, id, syncFromServer]);
+
+  // Se recalcula en cada render, así el aviso reacciona mientras se escribe.
+  const slipped = findForbidden(text, profile.forbidden_terms);
 
   const hasChanges =
     piece !== null &&
@@ -197,6 +200,16 @@ export function PiecePage() {
               aria-label="Texto de la pieza"
             />
             <div className={s.contador}>{text.length} caracteres</div>
+
+            {slipped.length > 0 && (
+              <div className={s.avisoProhibidas} role="status">
+                <span aria-hidden="true">⚠</span>
+                <span>
+                  Este texto usa {slipped.length === 1 ? 'una palabra' : 'palabras'} que
+                  pediste evitar: <strong>{slipped.join(', ')}</strong>.
+                </span>
+              </div>
+            )}
           </section>
 
           <section className={s.seccion}>

@@ -67,6 +67,20 @@
   text-align: right;
 }
 
+.avisoProhibidas {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: var(--space-3);
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  border-left: 3px solid var(--warn);
+  font-size: 13px;
+  color: var(--warn-t);
+  line-height: 1.45;
+}
+
 .estados {
   display: flex;
   gap: var(--space-2);

@@ -23,6 +23,7 @@ export { generateContent } from './generate';
 
 export {
   listPieces,
+  getPiece,
   createPiece,
   updatePiece,
   deletePiece,

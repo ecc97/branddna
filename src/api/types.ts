@@ -52,6 +52,15 @@ export type BrandProfileUpdate = Partial<BrandProfileInput>;
 /** Lo que devuelve la API. Exige la llave de acceso de esa marca. */
 export interface BrandProfile extends Required<BrandProfileInput> {
   id: string;
+  /**
+   * Los términos prohibidos ya extraídos de `forbidden`, que es prosa libre.
+   *
+   * Los calcula el backend con la misma función que usa el generador, así que
+   * lo que aquí se resalta es exactamente lo que allí se vigila. El cliente no
+   * reimplementa esa heurística: sería una segunda copia con su propia forma
+   * de divergir.
+   */
+  forbidden_terms: string[];
   created_at: string;
   updated_at: string;
 }

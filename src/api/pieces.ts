@@ -20,6 +20,16 @@ export function listPieces(
 }
 
 /**
+ * Una pieza concreta.
+ *
+ * Antes el detalle pedía el calendario entero y buscaba el id dentro:
+ * funcionaba, pero traía de más. Este endpoint se añadió justo para eso.
+ */
+export function getPiece(id: string, signal?: AbortSignal): Promise<ContentPiece> {
+  return request<ContentPiece>(`/pieces/${id}`, { signal });
+}
+
+/**
  * Guarda la opción que el usuario eligió.
  *
  * Nace sin fecha (`scheduled_date: null`) salvo que se indique otra cosa: la

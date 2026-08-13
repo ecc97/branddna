@@ -28,6 +28,8 @@ Si el backend no está en `http://127.0.0.1:8000`, copia `.env.example` como
 | `npm run dev` | Servidor de desarrollo con recarga en caliente |
 | `npm run build` | **Comprueba tipos y compila.** Es la orden fiable para validar tipos |
 | `npm run lint` | oxlint |
+| `npm test` | Vitest sobre la lógica pura de `lib/` |
+| `npm run test:watch` | Lo mismo, en modo continuo |
 | `npm run preview` | Sirve el resultado de `build` |
 
 > `npx tsc --noEmit` **no comprueba nada** en este proyecto: Vite usa
