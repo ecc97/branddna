@@ -15,7 +15,7 @@ import { useId, type InputHTMLAttributes, type TextareaHTMLAttributes } from 're
 
 import s from './forms.module.css';
 
-interface Comunes {
+interface CommonProps {
   label: string;
   hint?: string;
   error?: string;
@@ -24,20 +24,20 @@ interface Comunes {
    * Oculta la etiqueta a la vista, pero la mantiene para lectores de pantalla.
    * Para cuando otro elemento visible ya identifica el campo.
    */
-  labelOculta?: boolean;
+  labelHidden?: boolean;
 }
 
-function Etiquetas({
+function FieldLabels({
   id,
   label,
   hint,
   error,
   required,
-  labelOculta,
-}: Comunes & { id: string }) {
+  labelHidden,
+}: CommonProps & { id: string }) {
   return (
     <>
-      <label className={labelOculta ? s.etiquetaOculta : s.etiqueta} htmlFor={id}>
+      <label className={labelHidden ? s.etiquetaOculta : s.etiqueta} htmlFor={id}>
         {label}
         {required && <span className={s.obligatorio}>*</span>}
       </label>
@@ -46,13 +46,13 @@ function Etiquetas({
   );
 }
 
-type TextInputProps = Comunes & Omit<InputHTMLAttributes<HTMLInputElement>, 'id'>;
+type TextInputProps = CommonProps & Omit<InputHTMLAttributes<HTMLInputElement>, 'id'>;
 
-export function TextInput({ label, hint, error, required, labelOculta, ...props }: TextInputProps) {
+export function TextInput({ label, hint, error, required, labelHidden, ...props }: TextInputProps) {
   const id = useId();
   return (
     <div className={s.campo}>
-      <Etiquetas id={id} label={label} hint={hint} error={error} required={required} labelOculta={labelOculta} />
+      <FieldLabels id={id} label={label} hint={hint} error={error} required={required} labelHidden={labelHidden} />
       <input
         id={id}
         className={`${s.control} ${error ? s.controlConError : ''}`}
@@ -69,13 +69,13 @@ export function TextInput({ label, hint, error, required, labelOculta, ...props 
   );
 }
 
-type TextAreaProps = Comunes & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'>;
+type TextAreaProps = CommonProps & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'>;
 
-export function TextArea({ label, hint, error, required, labelOculta, ...props }: TextAreaProps) {
+export function TextArea({ label, hint, error, required, labelHidden, ...props }: TextAreaProps) {
   const id = useId();
   return (
     <div className={s.campo}>
-      <Etiquetas id={id} label={label} hint={hint} error={error} required={required} labelOculta={labelOculta} />
+      <FieldLabels id={id} label={label} hint={hint} error={error} required={required} labelHidden={labelHidden} />
       <textarea
         id={id}
         className={`${s.area} ${error ? s.controlConError : ''}`}

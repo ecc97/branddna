@@ -20,133 +20,133 @@ import {
   CHANNELS,
   PIECE_TYPES,
   PIECE_TYPE_LABELS,
-  crearPieza,
-  generarContenido,
+  createPiece,
+  generateContent,
   type Channel,
   type GenerateResponse,
   type PieceStatus,
   type PieceType,
 } from '../api';
-import { Toast, type Aviso } from '../components/Toast';
-import { encontrarProhibidas, resaltarProhibidas } from '../lib/prohibidas';
-import { usePerfilActivo } from '../profile/profile-context';
+import { Toast, type Notice } from '../components/Toast';
+import { findForbidden, highlightForbidden } from '../lib/forbidden';
+import { useActiveProfile } from '../profile/profile-context';
 import s from './GeneratePage.module.css';
 
 /** Ideas genéricas para arrancar sin quedarse mirando el campo vacío. */
-const IDEAS: { etiqueta: string; tema: string }[] = [
-  { etiqueta: 'Producto del día', tema: 'el producto destacado de hoy' },
-  { etiqueta: 'Horario especial', tema: 'cambio de horario este fin de semana' },
-  { etiqueta: 'Novedad', tema: 'algo nuevo que acabamos de sumar' },
-  { etiqueta: 'Detrás de escena', tema: 'cómo empieza el día en el negocio' },
+const IDEAS: { label: string; topic: string }[] = [
+  { label: 'Producto del día', topic: 'el producto destacado de hoy' },
+  { label: 'Horario especial', topic: 'cambio de horario este fin de semana' },
+  { label: 'Novedad', topic: 'algo nuevo que acabamos de sumar' },
+  { label: 'Detrás de escena', topic: 'cómo empieza el día en el negocio' },
 ];
 
-interface OpcionEnPantalla {
+interface DisplayOption {
   id: string;
   approach: string;
-  texto: string;
+  text: string;
   editando: boolean;
 }
 
 export function GeneratePage() {
-  const perfil = usePerfilActivo();
-  const navegar = useNavigate();
+  const profile = useActiveProfile();
+  const navigate = useNavigate();
 
-  const [canal, setCanal] = useState<Channel>('Instagram');
-  const [tipo, setTipo] = useState<PieceType>('post');
-  const [tema, setTema] = useState('');
+  const [channel, setChannel] = useState<Channel>('Instagram');
+  const [pieceType, setPieceType] = useState<PieceType>('post');
+  const [topic, setTopic] = useState('');
 
-  const [generando, setGenerando] = useState(false);
-  const [respuesta, setRespuesta] = useState<GenerateResponse | null>(null);
-  const [opciones, setOpciones] = useState<OpcionEnPantalla[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [response, setResponse] = useState<GenerateResponse | null>(null);
+  const [options, setOptions] = useState<DisplayOption[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [guardandoId, setGuardandoId] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
-  const terminosVigilados = respuesta?.forbidden_terms_checked ?? [];
+  const watchedTerms = response?.forbidden_terms_checked ?? [];
 
-  async function generar() {
-    const temaLimpio = tema.trim();
-    if (!temaLimpio) {
+  async function generate() {
+    const cleanTopic = topic.trim();
+    if (!cleanTopic) {
       setError('Escribe sobre qué quieres publicar.');
       return;
     }
 
-    setGenerando(true);
+    setGenerating(true);
     setError(null);
-    setOpciones([]);
-    setRespuesta(null);
+    setOptions([]);
+    setResponse(null);
 
     try {
-      const resultado = await generarContenido({
-        profile_id: perfil.id,
-        channel: canal,
-        piece_type: tipo,
-        topic: temaLimpio,
+      const result = await generateContent({
+        profile_id: profile.id,
+        channel: channel,
+        piece_type: pieceType,
+        topic: cleanTopic,
       });
-      setRespuesta(resultado);
-      setOpciones(
-        resultado.options.map((opcion, indice) => ({
-          id: `${Date.now()}-${indice}`,
-          approach: opcion.approach,
-          texto: opcion.text,
+      setResponse(result);
+      setOptions(
+        result.options.map((option, index) => ({
+          id: `${Date.now()}-${index}`,
+          approach: option.approach,
+          text: option.text,
           editando: false,
         }))
       );
-    } catch (fallo) {
+    } catch (failure) {
       setError(
-        fallo instanceof ApiError ? fallo.message : 'No se pudo generar el contenido.'
+        failure instanceof ApiError ? failure.message : 'No se pudo generar el contenido.'
       );
     } finally {
-      setGenerando(false);
+      setGenerating(false);
     }
   }
 
-  async function guardar(opcion: OpcionEnPantalla, estado: PieceStatus) {
-    setGuardandoId(opcion.id);
+  async function save(option: DisplayOption, status: PieceStatus) {
+    setSavingId(option.id);
     try {
-      await crearPieza({
-        profile_id: perfil.id,
-        channel: canal,
-        piece_type: tipo,
-        topic: tema.trim(),
-        generated_text: opcion.texto,
-        status: estado,
+      await createPiece({
+        profile_id: profile.id,
+        channel: channel,
+        piece_type: pieceType,
+        topic: topic.trim(),
+        generated_text: option.text,
+        status: status,
       });
       // Se quita de la lista: ya está guardada, dejarla invitaría a duplicarla.
-      setOpciones((actuales) => actuales.filter((o) => o.id !== opcion.id));
-      setAviso({
-        mensaje:
-          estado === 'aprobado'
+      setOptions((current) => current.filter((o) => o.id !== option.id));
+      setNotice({
+        message:
+          status === 'aprobado'
             ? 'Aprobada y guardada. Prográmala en el calendario.'
             : 'Guardada como borrador.',
       });
-    } catch (fallo) {
-      setAviso({
-        mensaje: fallo instanceof ApiError ? fallo.message : 'No se pudo guardar.',
-        tipo: 'error',
+    } catch (failure) {
+      setNotice({
+        message: failure instanceof ApiError ? failure.message : 'No se pudo guardar.',
+        kind: 'error',
       });
     } finally {
-      setGuardandoId(null);
+      setSavingId(null);
     }
   }
 
-  function editarTexto(id: string, texto: string) {
-    setOpciones((actuales) => actuales.map((o) => (o.id === id ? { ...o, texto } : o)));
+  function editText(id: string, text: string) {
+    setOptions((current) => current.map((o) => (o.id === id ? { ...o, text } : o)));
   }
 
-  function alternarEdicion(id: string) {
-    setOpciones((actuales) =>
-      actuales.map((o) => (o.id === id ? { ...o, editando: !o.editando } : o))
+  function toggleEditing(id: string) {
+    setOptions((current) =>
+      current.map((o) => (o.id === id ? { ...o, editando: !o.editando } : o))
     );
   }
 
-  function descartar(id: string) {
+  function discard(id: string) {
     // No se llama al backend: estas opciones nunca llegaron a guardarse.
-    setOpciones((actuales) => actuales.filter((o) => o.id !== id));
+    setOptions((current) => current.filter((o) => o.id !== id));
   }
 
-  const hayResultados = !generando && opciones.length > 0;
-  const seVaciaronLasOpciones = !generando && respuesta !== null && opciones.length === 0;
+  const hasResults = !generating && options.length > 0;
+  const allOptionsCleared = !generating && response !== null && options.length === 0;
 
   return (
     <>
@@ -155,8 +155,8 @@ export function GeneratePage() {
       <p className={s.firma}>
         <span className={s.puntoVivo} />
         <span>
-          Escribiendo como <span className={s.marca}>{perfil.business_name}</span>, tono{' '}
-          <span className={s.marca}>{perfil.tone}</span>
+          Escribiendo como <span className={s.marca}>{profile.business_name}</span>, tono{' '}
+          <span className={s.marca}>{profile.tone}</span>
         </span>
       </p>
 
@@ -165,15 +165,15 @@ export function GeneratePage() {
           Canal
         </div>
         <div className={s.chips} role="group" aria-labelledby="etiqueta-canal">
-          {CHANNELS.map((opcion) => (
+          {CHANNELS.map((option) => (
             <button
-              key={opcion}
+              key={option}
               type="button"
-              className={opcion === canal ? s.chipActivo : s.chip}
-              aria-pressed={opcion === canal}
-              onClick={() => setCanal(opcion)}
+              className={option === channel ? s.chipActivo : s.chip}
+              aria-pressed={option === channel}
+              onClick={() => setChannel(option)}
             >
-              {opcion}
+              {option}
             </button>
           ))}
         </div>
@@ -184,15 +184,15 @@ export function GeneratePage() {
           Tipo de pieza
         </div>
         <div className={s.chips} role="group" aria-labelledby="etiqueta-tipo">
-          {PIECE_TYPES.map((opcion) => (
+          {PIECE_TYPES.map((option) => (
             <button
-              key={opcion}
+              key={option}
               type="button"
-              className={opcion === tipo ? s.chipActivo : s.chip}
-              aria-pressed={opcion === tipo}
-              onClick={() => setTipo(opcion)}
+              className={option === pieceType ? s.chipActivo : s.chip}
+              aria-pressed={option === pieceType}
+              onClick={() => setPieceType(option)}
             >
-              {PIECE_TYPE_LABELS[opcion]}
+              {PIECE_TYPE_LABELS[option]}
             </button>
           ))}
         </div>
@@ -206,33 +206,33 @@ export function GeneratePage() {
           id="tema"
           className={s.tema}
           rows={2}
-          value={tema}
-          onChange={(e) => setTema(e.target.value)}
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
           placeholder="Llegó el pan de centeno de los martes"
         />
         <div className={s.ideas}>
           {IDEAS.map((idea) => (
             <button
-              key={idea.etiqueta}
+              key={idea.label}
               type="button"
               className={s.idea}
-              onClick={() => setTema(idea.tema)}
+              onClick={() => setTopic(idea.topic)}
             >
-              {idea.etiqueta}
+              {idea.label}
             </button>
           ))}
         </div>
       </div>
 
-      <button className={s.generar} onClick={generar} disabled={generando}>
-        {generando
+      <button className={s.generar} onClick={generate} disabled={generating}>
+        {generating
           ? 'Escribiendo…'
-          : opciones.length > 0
+          : options.length > 0
             ? 'Generar otras 3'
             : 'Generar 3 opciones'}
       </button>
 
-      {generando && (
+      {generating && (
         <>
           <div className={s.esqueletos} aria-hidden="true">
             <div className={s.esqueleto} />
@@ -251,19 +251,19 @@ export function GeneratePage() {
         </div>
       )}
 
-      {hayResultados && respuesta && (
+      {hasResults && response && (
         <div className={s.resultados}>
           <div className={s.resumen}>
             <div className={s.resumenLinea}>
               <span>3 opciones. Quédate con la que suene a tu marca.</span>
             </div>
 
-            {terminosVigilados.length > 0 ? (
+            {watchedTerms.length > 0 ? (
               <div className={s.resumenLinea}>
                 <span className={s.escudo}>✓</span>
                 <span>
-                  Revisado que no aparezcan: {terminosVigilados.join(', ')}.
-                  {respuesta.regenerated &&
+                  Revisado que no aparezcan: {watchedTerms.join(', ')}.
+                  {response.regenerated &&
                     ' Se le pidió una corrección al modelo y la aplicó.'}
                 </span>
               </div>
@@ -274,7 +274,7 @@ export function GeneratePage() {
                   <button
                     type="button"
                     className={s.enlace}
-                    onClick={() => navegar('/marca')}
+                    onClick={() => navigate('/marca')}
                   >
                     Añádelas en Mi marca
                   </button>{' '}
@@ -283,71 +283,71 @@ export function GeneratePage() {
               </div>
             )}
 
-            {respuesta.warnings.map((advertencia) => (
-              <div key={advertencia} className={s.resumenLinea}>
-                <span className={s.resumenAviso}>⚠ {advertencia}</span>
+            {response.warnings.map((warning) => (
+              <div key={warning} className={s.resumenLinea}>
+                <span className={s.resumenAviso}>⚠ {warning}</span>
               </div>
             ))}
           </div>
 
-          {opciones.map((opcion) => {
+          {options.map((option) => {
             // Se recalcula en cada render: si el usuario edita el texto y
             // escribe una palabra prohibida a mano, el aviso aparece al
             // momento sin volver a llamar a la API.
-            const coladas = encontrarProhibidas(opcion.texto, terminosVigilados);
-            const guardandoEsta = guardandoId === opcion.id;
+            const slipped = findForbidden(option.text, watchedTerms);
+            const savingThis = savingId === option.id;
 
             return (
               <article
-                key={opcion.id}
-                className={coladas.length ? s.tarjetaSucia : s.tarjeta}
+                key={option.id}
+                className={slipped.length ? s.tarjetaSucia : s.tarjeta}
               >
                 <div className={s.tarjetaCabecera}>
-                  <div className={s.enfoque}>{opcion.approach}</div>
+                  <div className={s.enfoque}>{option.approach}</div>
                   <div className={s.meta}>
-                    {canal} · {PIECE_TYPE_LABELS[tipo]}
+                    {channel} · {PIECE_TYPE_LABELS[pieceType]}
                   </div>
                 </div>
 
-                {opcion.editando ? (
+                {option.editando ? (
                   <textarea
                     className={s.editor}
-                    value={opcion.texto}
-                    onChange={(e) => editarTexto(opcion.id, e.target.value)}
-                    aria-label={`Editar la opción ${opcion.approach}`}
+                    value={option.text}
+                    onChange={(e) => editText(option.id, e.target.value)}
+                    aria-label={`Editar la opción ${option.approach}`}
                   />
                 ) : (
                   <div className={s.texto}>
-                    {resaltarProhibidas(opcion.texto, terminosVigilados)}
+                    {highlightForbidden(option.text, watchedTerms)}
                   </div>
                 )}
 
-                {coladas.length > 0 && (
+                {slipped.length > 0 && (
                   <div className={s.aviso}>
                     <span aria-hidden="true">⚠</span>
                     <span>
-                      Usa {coladas.length === 1 ? 'una palabra' : 'palabras'} que pediste
-                      evitar: <strong>{coladas.join(', ')}</strong>. Edítala o descártala.
+                      Usa {slipped.length === 1 ? 'una palabra' : 'palabras'} que pediste
+                      evitar: <strong>{slipped.join(', ')}</strong>. Edítala o descártala.
                     </span>
                   </div>
                 )}
 
                 <div className={s.acciones}>
                   <button
-                    className={coladas.length ? s.aprobarAviso : s.aprobar}
-                    disabled={guardandoEsta}
-                    onClick={() => guardar(opcion, 'aprobado')}
+                    className={slipped.length ? s.aprobarAviso : s.aprobar}
+                    disabled={savingThis}
+                    onClick={() => save(option, 'aprobado')}
                   >
-                    {guardandoEsta
+                    {savingThis
                       ? 'Guardando…'
-                      : coladas.length
+                      : slipped.length
                         ? 'Aprobar igualmente'
                         : 'Aprobar'}
                   </button>
                   <button
                     className={s.borrador}
-                    disabled={guardandoEsta}
-                    onClick={() => guardar(opcion, 'borrador')}
+                    disabled={savingThis}
+                    onClick={() => save(option, 'borrador')}
                   >
                     Guardar borrador
                   </button>
@@ -356,11 +356,11 @@ export function GeneratePage() {
                 <div className={s.accionesSecundarias}>
                   <button
                     className={s.textual}
-                    onClick={() => alternarEdicion(opcion.id)}
+                    onClick={() => toggleEditing(option.id)}
                   >
-                    {opcion.editando ? 'Listo' : 'Editar'}
+                    {option.editando ? 'Listo' : 'Editar'}
                   </button>
-                  <button className={s.descartar} onClick={() => descartar(opcion.id)}>
+                  <button className={s.descartar} onClick={() => discard(option.id)}>
                     Descartar
                   </button>
                 </div>
@@ -370,7 +370,7 @@ export function GeneratePage() {
         </div>
       )}
 
-      {seVaciaronLasOpciones && (
+      {allOptionsCleared && (
         <div className={s.vacio}>
           No queda ninguna opción sobre la mesa.
           <br />
@@ -378,7 +378,7 @@ export function GeneratePage() {
         </div>
       )}
 
-      <Toast aviso={aviso} onCerrar={() => setAviso(null)} />
+      <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

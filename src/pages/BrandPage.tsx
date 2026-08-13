@@ -18,15 +18,15 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 
-import { ApiError, actualizarPerfil, crearPerfil, type BrandProfile } from '../api';
+import { ApiError, updateProfile, createProfile, type BrandProfile } from '../api';
 import { TagInput } from '../components/TagInput';
 import { TextArea, TextInput } from '../components/TextInput';
 import { ToneSelector } from '../components/ToneSelector';
-import { Toast, type Aviso } from '../components/Toast';
+import { Toast, type Notice } from '../components/Toast';
 import { useProfile } from '../profile/profile-context';
 import s from './BrandPage.module.css';
 
-interface Formulario {
+interface BrandForm {
   business_name: string;
   what_they_sell: string;
   tone: string;
@@ -38,7 +38,7 @@ interface Formulario {
   bad_example: string;
 }
 
-const VACIO: Formulario = {
+const EMPTY_FORM: BrandForm = {
   business_name: '',
   what_they_sell: '',
   tone: '',
@@ -49,159 +49,159 @@ const VACIO: Formulario = {
   bad_example: '',
 };
 
-function desdePerfil(perfil: BrandProfile): Formulario {
+function fromProfile(profile: BrandProfile): BrandForm {
   return {
-    business_name: perfil.business_name,
-    what_they_sell: perfil.what_they_sell,
-    tone: perfil.tone,
-    target_audience: perfil.target_audience,
-    keywords: perfil.keywords
+    business_name: profile.business_name,
+    what_they_sell: profile.what_they_sell,
+    tone: profile.tone,
+    target_audience: profile.target_audience,
+    keywords: profile.keywords
       .split(',')
       .map((k) => k.trim())
       .filter(Boolean),
-    forbidden: perfil.forbidden,
-    good_example: perfil.good_example,
-    bad_example: perfil.bad_example,
+    forbidden: profile.forbidden,
+    good_example: profile.good_example,
+    bad_example: profile.bad_example,
   };
 }
 
-const OBLIGATORIOS: { campo: keyof Formulario; aviso: string }[] = [
-  { campo: 'business_name', aviso: 'Escribe el nombre del negocio.' },
-  { campo: 'what_they_sell', aviso: 'Cuenta qué vendes.' },
-  { campo: 'tone', aviso: 'Elige o describe el tono.' },
-  { campo: 'target_audience', aviso: 'Di a quién le hablas.' },
+const REQUIRED_FIELDS: { field: keyof BrandForm; notice: string }[] = [
+  { field: 'business_name', notice: 'Escribe el nombre del negocio.' },
+  { field: 'what_they_sell', notice: 'Cuenta qué vendes.' },
+  { field: 'tone', notice: 'Elige o describe el tono.' },
+  { field: 'target_audience', notice: 'Di a quién le hablas.' },
 ];
 
 export function BrandPage() {
-  const { perfilActivo, perfiles, registrarPerfil, seleccionar } = useProfile();
-  const navegar = useNavigate();
+  const { activeProfile, profiles, registerProfile, selectProfile } = useProfile();
+  const navigate = useNavigate();
 
   /** 'nueva' es una marca adicional; el alta inicial no necesita modo. */
-  const [modo, setModo] = useState<'editar' | 'nueva'>('editar');
-  const esAlta = perfilActivo === null || modo === 'nueva';
-  const esPrimeraDeTodas = perfilActivo === null;
+  const [mode, setMode] = useState<'editar' | 'nueva'>('editar');
+  const isCreating = activeProfile === null || mode === 'nueva';
+  const isFirstEver = activeProfile === null;
 
-  const [datos, setDatos] = useState<Formulario>(() =>
-    perfilActivo ? desdePerfil(perfilActivo) : VACIO
+  const [form, setForm] = useState<BrandForm>(() =>
+    activeProfile ? fromProfile(activeProfile) : EMPTY_FORM
   );
-  const [errores, setErrores] = useState<Partial<Record<keyof Formulario, string>>>({});
-  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof BrandForm, string>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
-  function cambiar<C extends keyof Formulario>(campo: C, valor: Formulario[C]) {
-    setDatos((actual) => ({ ...actual, [campo]: valor }));
+  function updateField<C extends keyof BrandForm>(field: C, value: BrandForm[C]) {
+    setForm((current) => ({ ...current, [field]: value }));
     // El error de un campo desaparece en cuanto el usuario lo toca: mantenerlo
     // mientras escribe la corrección resulta acusador y molesto.
-    setErrores((actuales) => {
-      if (!actuales[campo]) return actuales;
-      const siguiente = { ...actuales };
-      delete siguiente[campo];
-      return siguiente;
+    setErrors((currentErrors) => {
+      if (!currentErrors[field]) return currentErrors;
+      const next = { ...currentErrors };
+      delete next[field];
+      return next;
     });
   }
 
-  function empezarMarcaNueva() {
-    setModo('nueva');
-    setDatos(VACIO);
-    setErrores({});
-    setErrorGeneral(null);
+  function startNewBrand() {
+    setMode('nueva');
+    setForm(EMPTY_FORM);
+    setErrors({});
+    setFormError(null);
   }
 
-  function cancelarMarcaNueva() {
-    setModo('editar');
-    setDatos(perfilActivo ? desdePerfil(perfilActivo) : VACIO);
-    setErrores({});
-    setErrorGeneral(null);
+  function cancelNewBrand() {
+    setMode('editar');
+    setForm(activeProfile ? fromProfile(activeProfile) : EMPTY_FORM);
+    setErrors({});
+    setFormError(null);
   }
 
-  function validar(): boolean {
-    const encontrados: Partial<Record<keyof Formulario, string>> = {};
-    for (const { campo, aviso: mensaje } of OBLIGATORIOS) {
-      if (!String(datos[campo]).trim()) encontrados[campo] = mensaje;
+  function validate(): boolean {
+    const found: Partial<Record<keyof BrandForm, string>> = {};
+    for (const { field, notice: message } of REQUIRED_FIELDS) {
+      if (!String(form[field]).trim()) found[field] = message;
     }
-    setErrores(encontrados);
-    return Object.keys(encontrados).length === 0;
+    setErrors(found);
+    return Object.keys(found).length === 0;
   }
 
-  async function enviar(evento: FormEvent) {
-    evento.preventDefault();
-    setErrorGeneral(null);
-    if (!validar()) return;
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setFormError(null);
+    if (!validate()) return;
 
-    const cuerpo = {
-      business_name: datos.business_name.trim(),
-      what_they_sell: datos.what_they_sell.trim(),
-      tone: datos.tone.trim(),
-      target_audience: datos.target_audience.trim(),
-      keywords: datos.keywords.join(', '),
-      forbidden: datos.forbidden.trim(),
-      good_example: datos.good_example.trim(),
-      bad_example: datos.bad_example.trim(),
+    const payload = {
+      business_name: form.business_name.trim(),
+      what_they_sell: form.what_they_sell.trim(),
+      tone: form.tone.trim(),
+      target_audience: form.target_audience.trim(),
+      keywords: form.keywords.join(', '),
+      forbidden: form.forbidden.trim(),
+      good_example: form.good_example.trim(),
+      bad_example: form.bad_example.trim(),
     };
 
-    setGuardando(true);
+    setSaving(true);
     try {
-      const guardado = esAlta
-        ? await crearPerfil(cuerpo)
-        : await actualizarPerfil(perfilActivo!.id, cuerpo);
+      const saved = isCreating
+        ? await createProfile(payload)
+        : await updateProfile(activeProfile!.id, payload);
 
-      registrarPerfil(guardado);
-      setDatos(desdePerfil(guardado));
-      setModo('editar');
+      registerProfile(saved);
+      setForm(fromProfile(saved));
+      setMode('editar');
 
-      if (esPrimeraDeTodas) {
+      if (isFirstEver) {
         // Recién creada la primera: lo natural es llevarle a generar.
-        navegar('/generar');
+        navigate('/generar');
       } else {
-        setAviso({
-          mensaje: esAlta
-            ? `«${guardado.business_name}» creada y activa.`
+        setNotice({
+          message: isCreating
+            ? `«${saved.business_name}» creada y activa.`
             : 'Voz actualizada. Se aplica al contenido nuevo.',
         });
       }
-    } catch (fallo) {
-      setErrorGeneral(
-        fallo instanceof ApiError ? fallo.message : 'No se pudo guardar el perfil.'
+    } catch (failure) {
+      setFormError(
+        failure instanceof ApiError ? failure.message : 'No se pudo guardar el perfil.'
       );
     } finally {
-      setGuardando(false);
+      setSaving(false);
     }
   }
 
   return (
     <>
       <header className={s.cabecera}>
-        <div className={s.eyebrow}>{esAlta ? 'Nueva marca' : 'Perfil de marca'}</div>
+        <div className={s.eyebrow}>{isCreating ? 'Nueva marca' : 'Perfil de marca'}</div>
         <h1 className={s.titulo}>
-          {esAlta ? 'Define su voz.' : 'Tu voz, una sola vez.'}
+          {isCreating ? 'Define su voz.' : 'Tu voz, una sola vez.'}
         </h1>
         <p className={s.lead}>
-          {esPrimeraDeTodas
+          {isFirstEver
             ? 'Ocho respuestas cortas. Después la app escribe como escribes tú.'
-            : esAlta
+            : isCreating
               ? 'Cada marca tiene su propia voz, sus palabras y sus prohibiciones.'
               : 'Los cambios se aplican al contenido nuevo. Lo que ya guardaste no se toca.'}
         </p>
 
         {/* Sin autenticación pueden convivir varias marcas en la misma base.
             Sin esto, la app se quedaría atada a la primera. */}
-        {!esAlta && perfilActivo && (
+        {!isCreating && activeProfile && (
           <div className={s.selector}>
-            {perfiles.length > 1 && (
+            {profiles.length > 1 && (
               <>
                 <label htmlFor="cambiar-marca">Marca activa:</label>
                 <select
                   id="cambiar-marca"
                   className={s.select}
-                  value={perfilActivo.id}
+                  value={activeProfile.id}
                   onChange={(e) => {
-                    seleccionar(e.target.value);
-                    const elegido = perfiles.find((p) => p.id === e.target.value);
-                    if (elegido) setDatos(desdePerfil(elegido));
+                    selectProfile(e.target.value);
+                    const chosen = profiles.find((p) => p.id === e.target.value);
+                    if (chosen) setForm(fromProfile(chosen));
                   }}
                 >
-                  {perfiles.map((p) => (
+                  {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.business_name}
                     </option>
@@ -209,20 +209,20 @@ export function BrandPage() {
                 </select>
               </>
             )}
-            <button type="button" className={s.enlace} onClick={empezarMarcaNueva}>
+            <button type="button" className={s.enlace} onClick={startNewBrand}>
               + Nueva marca
             </button>
           </div>
         )}
       </header>
 
-      <form className={s.formulario} onSubmit={enviar} noValidate>
+      <form className={s.formulario} onSubmit={submit} noValidate>
         <TextInput
           label="Nombre del negocio"
           required
-          value={datos.business_name}
-          error={errores.business_name}
-          onChange={(e) => cambiar('business_name', e.target.value)}
+          value={form.business_name}
+          error={errors.business_name}
+          onChange={(e) => updateField('business_name', e.target.value)}
           placeholder="Panadería La Espiga"
         />
 
@@ -230,40 +230,40 @@ export function BrandPage() {
           label="¿Qué vendes?"
           required
           rows={2}
-          value={datos.what_they_sell}
-          error={errores.what_they_sell}
-          onChange={(e) => cambiar('what_they_sell', e.target.value)}
+          value={form.what_they_sell}
+          error={errors.what_they_sell}
+          onChange={(e) => updateField('what_they_sell', e.target.value)}
           placeholder="Pan de masa madre y postres caseros"
           hint="Ej.: «Pan de masa madre, horneado cada mañana»"
         />
 
         <ToneSelector
-          value={datos.tone}
-          error={errores.tone}
-          onChange={(valor) => cambiar('tone', valor)}
+          value={form.tone}
+          error={errors.tone}
+          onChange={(value) => updateField('tone', value)}
         />
 
         <TextInput
           label="¿A quién le hablas?"
           required
-          value={datos.target_audience}
-          error={errores.target_audience}
-          onChange={(e) => cambiar('target_audience', e.target.value)}
+          value={form.target_audience}
+          error={errors.target_audience}
+          onChange={(e) => updateField('target_audience', e.target.value)}
           placeholder="Vecinos del barrio, 30 a 60 años"
         />
 
         <TagInput
           label="Palabras que te representan"
-          value={datos.keywords}
-          onChange={(valor) => cambiar('keywords', valor)}
+          value={form.keywords}
+          onChange={(value) => updateField('keywords', value)}
           placeholder="Escribe una y pulsa Enter"
           hint="Aparecen en los textos generados. Escribe las tuyas: son las que hacen única a tu marca."
         />
 
         <TextInput
           label="Nunca digas"
-          value={datos.forbidden}
-          onChange={(e) => cambiar('forbidden', e.target.value)}
+          value={form.forbidden}
+          onChange={(e) => updateField('forbidden', e.target.value)}
           placeholder="no usar la palabra gourmet, ni premium"
           hint="Esto no es solo una sugerencia al modelo: la app revisa cada texto generado y avisa si alguna de estas palabras se cuela."
         />
@@ -278,10 +278,10 @@ export function BrandPage() {
             </div>
             <TextArea
               label="Ejemplo que sí suena a tu marca"
-              labelOculta
+              labelHidden
               rows={2}
-              value={datos.good_example}
-              onChange={(e) => cambiar('good_example', e.target.value)}
+              value={form.good_example}
+              onChange={(e) => updateField('good_example', e.target.value)}
               placeholder="«Recién salido del horno. Pasa antes de que se acabe.»"
             />
           </div>
@@ -293,37 +293,37 @@ export function BrandPage() {
             </div>
             <TextArea
               label="Ejemplo que NO suena a tu marca"
-              labelOculta
+              labelHidden
               rows={2}
-              value={datos.bad_example}
-              onChange={(e) => cambiar('bad_example', e.target.value)}
+              value={form.bad_example}
+              onChange={(e) => updateField('bad_example', e.target.value)}
               placeholder="«¡¡PROMO IMPERDIBLE!! ¡Corre ya!!!»"
             />
           </div>
         </div>
 
-        {errorGeneral && (
+        {formError && (
           <div className={s.errorGeneral} role="alert">
-            {errorGeneral}
+            {formError}
           </div>
         )}
 
         <div className={s.acciones}>
-          <button className={s.guardar} type="submit" disabled={guardando}>
-            {guardando
+          <button className={s.guardar} type="submit" disabled={saving}>
+            {saving
               ? 'Guardando…'
-              : esPrimeraDeTodas
+              : isFirstEver
                 ? 'Guardar mi voz'
-                : esAlta
+                : isCreating
                   ? 'Crear marca'
                   : 'Guardar cambios'}
           </button>
-          {modo === 'nueva' && (
+          {mode === 'nueva' && (
             <button
               type="button"
               className={s.cancelar}
-              onClick={cancelarMarcaNueva}
-              disabled={guardando}
+              onClick={cancelNewBrand}
+              disabled={saving}
             >
               Cancelar
             </button>
@@ -331,7 +331,7 @@ export function BrandPage() {
         </div>
       </form>
 
-      <Toast aviso={aviso} onCerrar={() => setAviso(null)} />
+      <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

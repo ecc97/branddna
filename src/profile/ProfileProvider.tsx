@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { listarPerfiles, type BrandProfile } from '../api';
+import { listProfiles, type BrandProfile } from '../api';
 import {
   PROFILE_STORAGE_KEY,
   ProfileContext,
-  type EstadoPerfil,
+  type ProfileState,
 } from './profile-context';
 
-function leerIdGuardado(): string | null {
+function readStoredId(): string | null {
   try {
     return localStorage.getItem(PROFILE_STORAGE_KEY);
   } catch {
@@ -15,7 +15,7 @@ function leerIdGuardado(): string | null {
   }
 }
 
-function guardarId(id: string | null): void {
+function storeId(id: string | null): void {
   try {
     if (id) localStorage.setItem(PROFILE_STORAGE_KEY, id);
     else localStorage.removeItem(PROFILE_STORAGE_KEY);
@@ -26,91 +26,91 @@ function guardarId(id: string | null): void {
 }
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<EstadoPerfil>('cargando');
+  const [state, setState] = useState<ProfileState>('cargando');
   const [error, setError] = useState<string | null>(null);
-  const [perfiles, setPerfiles] = useState<BrandProfile[]>([]);
-  const [perfilActivo, setPerfilActivo] = useState<BrandProfile | null>(null);
+  const [profiles, setProfiles] = useState<BrandProfile[]>([]);
+  const [activeProfile, setActiveProfile] = useState<BrandProfile | null>(null);
 
-  const cargar = useCallback(async (signal?: AbortSignal) => {
-    setEstado('cargando');
+  const load = useCallback(async (signal?: AbortSignal) => {
+    setState('cargando');
     setError(null);
 
-    let lista: BrandProfile[];
+    let list: BrandProfile[];
     try {
-      lista = await listarPerfiles(signal);
-    } catch (fallo) {
+      list = await listProfiles(signal);
+    } catch (failure) {
       // En desarrollo, StrictMode monta el efecto dos veces y aborta el
       // primero. Ese "fallo" no es un error real: se ignora.
       if (signal?.aborted) return;
-      setError(fallo instanceof Error ? fallo.message : String(fallo));
-      setEstado('error');
+      setError(failure instanceof Error ? failure.message : String(failure));
+      setState('error');
       return;
     }
 
     if (signal?.aborted) return;
-    setPerfiles(lista);
+    setProfiles(list);
 
-    if (lista.length === 0) {
-      setPerfilActivo(null);
-      setEstado('sin-perfiles');
+    if (list.length === 0) {
+      setActiveProfile(null);
+      setState('sin-perfiles');
       return;
     }
 
     // El id recordado solo vale si ese perfil sigue existiendo.
-    const guardado = leerIdGuardado();
-    const recordado = guardado ? lista.find((p) => p.id === guardado) : undefined;
-    if (recordado) {
-      setPerfilActivo(recordado);
-      setEstado('listo');
+    const storedId = readStoredId();
+    const remembered = storedId ? list.find((p) => p.id === storedId) : undefined;
+    if (remembered) {
+      setActiveProfile(remembered);
+      setState('listo');
       return;
     }
 
     // Con un solo perfil no tiene sentido preguntar cuál.
-    if (lista.length === 1) {
-      setPerfilActivo(lista[0]);
-      guardarId(lista[0].id);
-      setEstado('listo');
+    if (list.length === 1) {
+      setActiveProfile(list[0]);
+      storeId(list[0].id);
+      setState('listo');
       return;
     }
 
-    guardarId(null);
-    setPerfilActivo(null);
-    setEstado('eligiendo');
+    storeId(null);
+    setActiveProfile(null);
+    setState('eligiendo');
   }, []);
 
   useEffect(() => {
-    const controlador = new AbortController();
-    void cargar(controlador.signal);
-    return () => controlador.abort();
-  }, [cargar]);
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
-  const seleccionar = useCallback(
+  const selectProfile = useCallback(
     (id: string) => {
-      const elegido = perfiles.find((p) => p.id === id);
-      if (!elegido) return;
-      guardarId(id);
-      setPerfilActivo(elegido);
-      setEstado('listo');
+      const chosen = profiles.find((p) => p.id === id);
+      if (!chosen) return;
+      storeId(id);
+      setActiveProfile(chosen);
+      setState('listo');
     },
-    [perfiles]
+    [profiles]
   );
 
-  const registrarPerfil = useCallback((perfil: BrandProfile) => {
-    guardarId(perfil.id);
-    setPerfilActivo(perfil);
-    setPerfiles((actuales) => {
-      const existe = actuales.some((p) => p.id === perfil.id);
-      return existe ? actuales.map((p) => (p.id === perfil.id ? perfil : p)) : [perfil, ...actuales];
+  const registerProfile = useCallback((profile: BrandProfile) => {
+    storeId(profile.id);
+    setActiveProfile(profile);
+    setProfiles((current) => {
+      const exists = current.some((p) => p.id === profile.id);
+      return exists ? current.map((p) => (p.id === profile.id ? profile : p)) : [profile, ...current];
     });
-    setEstado('listo');
+    setState('listo');
   }, []);
 
-  const recargar = useCallback(() => void cargar(), [cargar]);
+  const reload = useCallback(() => void load(), [load]);
 
-  const valor = useMemo(
-    () => ({ estado, error, perfiles, perfilActivo, seleccionar, registrarPerfil, recargar }),
-    [estado, error, perfiles, perfilActivo, seleccionar, registrarPerfil, recargar]
+  const value = useMemo(
+    () => ({ state, error, profiles, activeProfile, selectProfile, registerProfile, reload }),
+    [state, error, profiles, activeProfile, selectProfile, registerProfile, reload]
   );
 
-  return <ProfileContext.Provider value={valor}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 }

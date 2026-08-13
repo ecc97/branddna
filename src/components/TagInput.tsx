@@ -17,38 +17,38 @@ interface TagInputProps {
   label: string;
   hint?: string;
   value: string[];
-  onChange: (siguiente: string[]) => void;
+  onChange: (next: string[]) => void;
   placeholder?: string;
 }
 
 export function TagInput({ label, hint, value, onChange, placeholder }: TagInputProps) {
   const id = useId();
-  const [borrador, setBorrador] = useState('');
+  const [draft, setDraft] = useState('');
 
-  function agregar(texto: string) {
-    const limpio = texto.trim().replace(/,+$/, '').trim();
-    if (!limpio) return;
+  function addTag(text: string) {
+    const cleaned = text.trim().replace(/,+$/, '').trim();
+    if (!cleaned) return;
     // Sin duplicados: comparar en minúsculas evita "Fresco" y "fresco".
-    const yaEsta = value.some((t) => t.toLowerCase() === limpio.toLowerCase());
-    if (!yaEsta) onChange([...value, limpio]);
-    setBorrador('');
+    const alreadyPresent = value.some((t) => t.toLowerCase() === cleaned.toLowerCase());
+    if (!alreadyPresent) onChange([...value, cleaned]);
+    setDraft('');
   }
 
-  function quitar(indice: number) {
-    onChange(value.filter((_, i) => i !== indice));
+  function removeTag(index: number) {
+    onChange(value.filter((_, i) => i !== index));
   }
 
-  function alPulsarTecla(evento: KeyboardEvent<HTMLInputElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     // La coma también confirma: mucha gente escribe listas separándolas así.
-    if (evento.key === 'Enter' || evento.key === ',') {
-      evento.preventDefault();
-      agregar(borrador);
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      addTag(draft);
       return;
     }
     // Retroceso con el campo vacío borra la última etiqueta, como en los
     // campos de destinatarios del correo.
-    if (evento.key === 'Backspace' && !borrador && value.length > 0) {
-      quitar(value.length - 1);
+    if (event.key === 'Backspace' && !draft && value.length > 0) {
+      removeTag(value.length - 1);
     }
   }
 
@@ -61,14 +61,14 @@ export function TagInput({ label, hint, value, onChange, placeholder }: TagInput
 
       {value.length > 0 && (
         <div className={s.tags}>
-          {value.map((etiqueta, indice) => (
-            <span key={etiqueta} className={s.tag}>
-              {etiqueta}
+          {value.map((tag, index) => (
+            <span key={tag} className={s.tag}>
+              {tag}
               <button
                 type="button"
                 className={s.quitarTag}
-                onClick={() => quitar(indice)}
-                aria-label={`Quitar ${etiqueta}`}
+                onClick={() => removeTag(index)}
+                aria-label={`Quitar ${tag}`}
               >
                 ×
               </button>
@@ -80,13 +80,13 @@ export function TagInput({ label, hint, value, onChange, placeholder }: TagInput
       <input
         id={id}
         className={s.control}
-        value={borrador}
+        value={draft}
         placeholder={placeholder}
-        onChange={(e) => setBorrador(e.target.value)}
-        onKeyDown={alPulsarTecla}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
         // Si el usuario escribe algo y hace clic fuera, se guarda igual.
         // Perder lo escrito por no pulsar Enter es una frustración innecesaria.
-        onBlur={() => agregar(borrador)}
+        onBlur={() => addTag(draft)}
       />
     </div>
   );

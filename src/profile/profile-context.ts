@@ -20,7 +20,7 @@ import type { BrandProfile } from '../api';
 
 export const PROFILE_STORAGE_KEY = 'branddna-profile-id';
 
-export type EstadoPerfil =
+export type ProfileState =
   /** Consultando la lista de perfiles. */
   | 'cargando'
   /** No se pudo hablar con el backend. */
@@ -33,26 +33,26 @@ export type EstadoPerfil =
   | 'listo';
 
 export interface ProfileContextValue {
-  estado: EstadoPerfil;
+  state: ProfileState;
   error: string | null;
-  perfiles: BrandProfile[];
-  perfilActivo: BrandProfile | null;
+  profiles: BrandProfile[];
+  activeProfile: BrandProfile | null;
   /** Elige un perfil de la lista y lo recuerda. */
-  seleccionar: (id: string) => void;
+  selectProfile: (id: string) => void;
   /** Registra un perfil recién creado o actualizado como el activo. */
-  registrarPerfil: (perfil: BrandProfile) => void;
+  registerProfile: (profile: BrandProfile) => void;
   /** Vuelve a consultar la lista al backend. */
-  recargar: () => void;
+  reload: () => void;
 }
 
 export const ProfileContext = createContext<ProfileContextValue | null>(null);
 
 export function useProfile(): ProfileContextValue {
-  const contexto = useContext(ProfileContext);
-  if (!contexto) {
+  const context = useContext(ProfileContext);
+  if (!context) {
     throw new Error('useProfile debe usarse dentro de <ProfileProvider>');
   }
-  return contexto;
+  return context;
 }
 
 /**
@@ -63,10 +63,10 @@ export function useProfile(): ProfileContextValue {
  * si alguna vez se montaran antes de tiempo, el error sería inmediato y claro
  * en vez de un `undefined` propagándose.
  */
-export function usePerfilActivo(): BrandProfile {
-  const { perfilActivo } = useProfile();
-  if (!perfilActivo) {
+export function useActiveProfile(): BrandProfile {
+  const { activeProfile } = useProfile();
+  if (!activeProfile) {
     throw new Error('No hay perfil activo: esta pantalla no debería estar montada.');
   }
-  return perfilActivo;
+  return activeProfile;
 }

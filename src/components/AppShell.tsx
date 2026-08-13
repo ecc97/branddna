@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 import { useTheme } from '../theme/theme-context';
 import s from './AppShell.module.css';
 
-const PESTANAS = [
+const TABS = [
   { to: '/generar', label: 'Generar' },
   { to: '/calendario', label: 'Calendario' },
   { to: '/marca', label: 'Mi marca' },
@@ -32,10 +32,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav className={s.barra} aria-label="Navegación principal">
         <div className={s.barraInterior}>
-          {PESTANAS.map((pestana) => (
+          {TABS.map((tab) => (
             <NavLink
-              key={pestana.to}
-              to={pestana.to}
+              key={tab.to}
+              to={tab.to}
               className={({ isActive }: NavLinkRenderProps) =>
                 isActive ? s.tabActiva : s.tab
               }
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {({ isActive }: NavLinkRenderProps) => (
                 <>
                   <span className={isActive ? s.marcaActiva : s.marca} />
-                  {pestana.label}
+                  {tab.label}
                 </>
               )}
             </NavLink>

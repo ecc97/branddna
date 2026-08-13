@@ -21,112 +21,112 @@ import {
   PIECE_TYPE_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
-  listarPiezas,
+  listPieces,
   type ContentPiece,
 } from '../api';
 import {
-  DIAS_CORTOS,
-  DIAS_INICIAL,
-  celdasDelMes,
-  claveDeHoy,
-  claveFecha,
-  semanaDe,
-  sumarDias,
-  sumarMeses,
-  tituloDeLaSemana,
-  tituloDelMes,
-} from '../lib/fechas';
-import { usePerfilActivo } from '../profile/profile-context';
+  DAY_SHORT_NAMES,
+  DAY_INITIALS,
+  monthGridCells,
+  todayKey,
+  dateKey,
+  weekOf,
+  addDays,
+  addMonths,
+  weekTitle,
+  monthTitle,
+} from '../lib/dates';
+import { useActiveProfile } from '../profile/profile-context';
 import s from './CalendarPage.module.css';
 
-type Vista = 'mes' | 'semana';
+type CalendarView = 'mes' | 'semana';
 
 /** Primera línea del texto, para la vista previa. */
-function resumen(pieza: ContentPiece): string {
-  return pieza.generated_text.split('\n').find((linea) => linea.trim()) ?? '';
+function firstLineOf(piece: ContentPiece): string {
+  return piece.generated_text.split('\n').find((linea) => linea.trim()) ?? '';
 }
 
 export function CalendarPage() {
-  const perfil = usePerfilActivo();
-  const navegar = useNavigate();
+  const profile = useActiveProfile();
+  const navigate = useNavigate();
 
-  const [piezas, setPiezas] = useState<ContentPiece[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [pieces, setPieces] = useState<ContentPiece[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [vista, setVista] = useState<Vista>('mes');
+  const [view, setView] = useState<CalendarView>('mes');
   /** Cualquier día dentro del periodo que se está mostrando. */
-  const [referencia, setReferencia] = useState(() => new Date());
+  const [anchorDate, setAnchorDate] = useState(() => new Date());
 
-  const cargar = useCallback(
+  const load = useCallback(
     async (signal?: AbortSignal) => {
-      setCargando(true);
+      setLoading(true);
       setError(null);
       try {
-        setPiezas(await listarPiezas(perfil.id, signal));
-      } catch (fallo) {
+        setPieces(await listPieces(profile.id, signal));
+      } catch (failure) {
         if (signal?.aborted) return;
         setError(
-          fallo instanceof ApiError ? fallo.message : 'No se pudieron cargar las piezas.'
+          failure instanceof ApiError ? failure.message : 'No se pudieron cargar las piezas.'
         );
       } finally {
-        if (!signal?.aborted) setCargando(false);
+        if (!signal?.aborted) setLoading(false);
       }
     },
-    [perfil.id]
+    [profile.id]
   );
 
   useEffect(() => {
-    const controlador = new AbortController();
-    void cargar(controlador.signal);
-    return () => controlador.abort();
-  }, [cargar]);
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   /*
     Se agrupa por la clave "AAAA-MM-DD" tal cual llega del backend, sin
     convertirla a Date. Comparar cadenas evita por completo los desfases de
-    zona horaria: ver `lib/fechas.ts`.
+    zona horaria: ver `lib/dates.ts`.
   */
-  const porFecha = useMemo(() => {
-    const mapa = new Map<string, ContentPiece[]>();
-    for (const pieza of piezas) {
-      if (!pieza.scheduled_date) continue;
-      const lista = mapa.get(pieza.scheduled_date);
-      if (lista) lista.push(pieza);
-      else mapa.set(pieza.scheduled_date, [pieza]);
+  const byDate = useMemo(() => {
+    const map = new Map<string, ContentPiece[]>();
+    for (const piece of pieces) {
+      if (!piece.scheduled_date) continue;
+      const list = map.get(piece.scheduled_date);
+      if (list) list.push(piece);
+      else map.set(piece.scheduled_date, [piece]);
     }
-    return mapa;
-  }, [piezas]);
+    return map;
+  }, [pieces]);
 
-  const sinProgramar = useMemo(
-    () => piezas.filter((pieza) => !pieza.scheduled_date),
-    [piezas]
+  const unscheduled = useMemo(
+    () => pieces.filter((piece) => !piece.scheduled_date),
+    [pieces]
   );
 
-  const hoy = claveDeHoy();
-  const celdas = useMemo(
-    () => celdasDelMes(referencia.getFullYear(), referencia.getMonth()),
-    [referencia]
+  const today = todayKey();
+  const cells = useMemo(
+    () => monthGridCells(anchorDate.getFullYear(), anchorDate.getMonth()),
+    [anchorDate]
   );
-  const diasSemana = useMemo(() => semanaDe(referencia), [referencia]);
+  const weekDays = useMemo(() => weekOf(anchorDate), [anchorDate]);
 
-  function retroceder() {
-    setReferencia((actual) =>
-      vista === 'mes' ? sumarMeses(actual, -1) : sumarDias(actual, -7)
+  function goBack() {
+    setAnchorDate((current) =>
+      view === 'mes' ? addMonths(current, -1) : addDays(current, -7)
     );
   }
 
-  function avanzar() {
-    setReferencia((actual) =>
-      vista === 'mes' ? sumarMeses(actual, 1) : sumarDias(actual, 7)
+  function goForward() {
+    setAnchorDate((current) =>
+      view === 'mes' ? addMonths(current, 1) : addDays(current, 7)
     );
   }
 
-  function abrir(pieza: ContentPiece) {
-    navegar(`/pieza/${pieza.id}`);
+  function openPiece(piece: ContentPiece) {
+    navigate(`/pieza/${piece.id}`);
   }
 
-  const noHayNada = !cargando && !error && piezas.length === 0;
+  const isEmpty = !loading && !error && pieces.length === 0;
 
   return (
     <>
@@ -134,16 +134,16 @@ export function CalendarPage() {
         <div className={s.eyebrow}>Calendario</div>
         <div className={s.conmutador} role="group" aria-label="Vista del calendario">
           <button
-            className={vista === 'mes' ? s.conmutadorActivo : s.conmutadorBoton}
-            aria-pressed={vista === 'mes'}
-            onClick={() => setVista('mes')}
+            className={view === 'mes' ? s.conmutadorActivo : s.conmutadorBoton}
+            aria-pressed={view === 'mes'}
+            onClick={() => setView('mes')}
           >
             Mes
           </button>
           <button
-            className={vista === 'semana' ? s.conmutadorActivo : s.conmutadorBoton}
-            aria-pressed={vista === 'semana'}
-            onClick={() => setVista('semana')}
+            className={view === 'semana' ? s.conmutadorActivo : s.conmutadorBoton}
+            aria-pressed={view === 'semana'}
+            onClick={() => setView('semana')}
           >
             Semana
           </button>
@@ -153,22 +153,22 @@ export function CalendarPage() {
       <div className={s.navegacion}>
         <button
           className={s.flecha}
-          onClick={retroceder}
-          aria-label={vista === 'mes' ? 'Mes anterior' : 'Semana anterior'}
+          onClick={goBack}
+          aria-label={view === 'mes' ? 'Mes anterior' : 'Semana anterior'}
         >
           ‹
         </button>
         <h1 className={s.titulo}>
-          {vista === 'mes' ? tituloDelMes(referencia) : tituloDeLaSemana(referencia)}
+          {view === 'mes' ? monthTitle(anchorDate) : weekTitle(anchorDate)}
         </h1>
         <button
           className={s.flecha}
-          onClick={avanzar}
-          aria-label={vista === 'mes' ? 'Mes siguiente' : 'Semana siguiente'}
+          onClick={goForward}
+          aria-label={view === 'mes' ? 'Mes siguiente' : 'Semana siguiente'}
         >
           ›
         </button>
-        <button className={s.hoy} onClick={() => setReferencia(new Date())}>
+        <button className={s.hoy} onClick={() => setAnchorDate(new Date())}>
           Hoy
         </button>
       </div>
@@ -176,62 +176,62 @@ export function CalendarPage() {
       {error && (
         <div className={s.error} role="alert">
           {error}{' '}
-          <button className={s.enlace} onClick={() => void cargar()}>
+          <button className={s.enlace} onClick={() => void load()}>
             Reintentar
           </button>
         </div>
       )}
 
-      {cargando && <div className={s.cargando}>Cargando el calendario…</div>}
+      {loading && <div className={s.cargando}>Cargando el calendario…</div>}
 
-      {!cargando && !error && vista === 'mes' && (
+      {!loading && !error && view === 'mes' && (
         <>
           <div className={s.nombresDia} aria-hidden="true">
-            {DIAS_INICIAL.map((inicial, indice) => (
-              <div key={indice} className={s.nombreDia}>
-                {inicial}
+            {DAY_INITIALS.map((initial, index) => (
+              <div key={index} className={s.nombreDia}>
+                {initial}
               </div>
             ))}
           </div>
           <div className={s.rejilla}>
-            {celdas.map((fecha) => {
-              const clave = claveFecha(fecha);
-              const delMes = fecha.getMonth() === referencia.getMonth();
-              const delDia = porFecha.get(clave) ?? [];
+            {cells.map((date) => {
+              const key = dateKey(date);
+              const inCurrentMonth = date.getMonth() === anchorDate.getMonth();
+              const dayPieces = byDate.get(key) ?? [];
 
-              if (!delMes) {
-                return <div key={clave} className={s.celdaFuera} />;
+              if (!inCurrentMonth) {
+                return <div key={key} className={s.celdaFuera} />;
               }
 
               return (
                 <div
-                  key={clave}
-                  className={delDia.length ? s.celdaConPiezas : s.celda}
+                  key={key}
+                  className={dayPieces.length ? s.celdaConPiezas : s.celda}
                 >
                   <div
                     className={
-                      clave === hoy
+                      key === today
                         ? s.numeroHoy
-                        : delDia.length
+                        : dayPieces.length
                           ? s.numeroConPiezas
                           : s.numero
                     }
                   >
-                    {fecha.getDate()}
+                    {date.getDate()}
                   </div>
-                  {delDia.map((pieza) => (
+                  {dayPieces.map((piece) => (
                     <button
-                      key={pieza.id}
+                      key={piece.id}
                       className={s.pastilla}
                       style={{
-                        background: STATUS_COLORS[pieza.status].soft,
-                        color: STATUS_COLORS[pieza.status].color,
-                        boxShadow: `inset 3px 0 0 ${STATUS_COLORS[pieza.status].color}`,
+                        background: STATUS_COLORS[piece.status].soft,
+                        color: STATUS_COLORS[piece.status].color,
+                        boxShadow: `inset 3px 0 0 ${STATUS_COLORS[piece.status].color}`,
                       }}
-                      onClick={() => abrir(pieza)}
-                      title={`${pieza.channel} · ${STATUS_LABELS[pieza.status]}`}
+                      onClick={() => openPiece(piece)}
+                      title={`${piece.channel} · ${STATUS_LABELS[piece.status]}`}
                     >
-                      {CHANNEL_SHORT[pieza.channel] ?? pieza.channel}
+                      {CHANNEL_SHORT[piece.channel] ?? piece.channel}
                     </button>
                   ))}
                 </div>
@@ -241,43 +241,43 @@ export function CalendarPage() {
         </>
       )}
 
-      {!cargando && !error && vista === 'semana' && (
+      {!loading && !error && view === 'semana' && (
         <div className={s.semana}>
-          {diasSemana.map((fecha, indice) => {
-            const clave = claveFecha(fecha);
-            const delDia = porFecha.get(clave) ?? [];
+          {weekDays.map((date, index) => {
+            const key = dateKey(date);
+            const dayPieces = byDate.get(key) ?? [];
             return (
-              <div key={clave} className={delDia.length ? s.diaConPiezas : s.dia}>
+              <div key={key} className={dayPieces.length ? s.diaConPiezas : s.dia}>
                 <div className={s.columnaFecha}>
-                  <div className={s.diaNombre}>{DIAS_CORTOS[indice]}</div>
+                  <div className={s.diaNombre}>{DAY_SHORT_NAMES[index]}</div>
                   <div
                     className={
-                      clave === hoy
+                      key === today
                         ? s.diaNumeroHoy
-                        : delDia.length
+                        : dayPieces.length
                           ? s.diaNumeroConPiezas
                           : s.diaNumero
                     }
                   >
-                    {fecha.getDate()}
+                    {date.getDate()}
                   </div>
                 </div>
                 <div className={s.columnaPiezas}>
-                  {delDia.length === 0 && <div className={s.diaLibre}>Día libre</div>}
-                  {delDia.map((pieza) => (
+                  {dayPieces.length === 0 && <div className={s.diaLibre}>Día libre</div>}
+                  {dayPieces.map((piece) => (
                     <button
-                      key={pieza.id}
+                      key={piece.id}
                       className={s.pieza}
-                      onClick={() => abrir(pieza)}
+                      onClick={() => openPiece(piece)}
                     >
                       <div className={s.piezaMeta}>
                         <span
                           className={s.punto}
-                          style={{ background: STATUS_COLORS[pieza.status].color }}
+                          style={{ background: STATUS_COLORS[piece.status].color }}
                         />
-                        {pieza.channel} · {STATUS_LABELS[pieza.status]}
+                        {piece.channel} · {STATUS_LABELS[piece.status]}
                       </div>
-                      <div className={s.piezaTexto}>{resumen(pieza)}</div>
+                      <div className={s.piezaTexto}>{firstLineOf(piece)}</div>
                     </button>
                   ))}
                 </div>
@@ -287,50 +287,50 @@ export function CalendarPage() {
         </div>
       )}
 
-      {noHayNada && (
+      {isEmpty && (
         <div className={s.vacio}>
           Todavía no has guardado ninguna pieza.
           <br />
-          <button className={s.enlace} onClick={() => navegar('/generar')}>
+          <button className={s.enlace} onClick={() => navigate('/generar')}>
             Genera tu primer contenido
           </button>{' '}
           y aparecerá aquí.
         </div>
       )}
 
-      {!cargando && !error && sinProgramar.length > 0 && (
+      {!loading && !error && unscheduled.length > 0 && (
         <section className={s.seccion}>
-          <div className={s.seccionTitulo}>Sin programar ({sinProgramar.length})</div>
+          <div className={s.seccionTitulo}>Sin programar ({unscheduled.length})</div>
           <p className={s.seccionPista}>
             Guardadas pero sin fecha. Ábrelas para ponerles día y que aparezcan arriba.
           </p>
           <div className={s.listaSinFecha}>
-            {sinProgramar.map((pieza) => (
-              <button key={pieza.id} className={s.pieza} onClick={() => abrir(pieza)}>
+            {unscheduled.map((piece) => (
+              <button key={piece.id} className={s.pieza} onClick={() => openPiece(piece)}>
                 <div className={s.piezaMeta}>
                   <span
                     className={s.punto}
-                    style={{ background: STATUS_COLORS[pieza.status].color }}
+                    style={{ background: STATUS_COLORS[piece.status].color }}
                   />
-                  {pieza.channel} · {PIECE_TYPE_LABELS[pieza.piece_type]} ·{' '}
-                  {STATUS_LABELS[pieza.status]}
+                  {piece.channel} · {PIECE_TYPE_LABELS[piece.piece_type]} ·{' '}
+                  {STATUS_LABELS[piece.status]}
                 </div>
-                <div className={s.piezaTexto}>{resumen(pieza)}</div>
+                <div className={s.piezaTexto}>{firstLineOf(piece)}</div>
               </button>
             ))}
           </div>
         </section>
       )}
 
-      {!cargando && !error && piezas.length > 0 && (
+      {!loading && !error && pieces.length > 0 && (
         <div className={s.leyenda}>
-          {PIECE_STATUSES.map((estado) => (
-            <div key={estado} className={s.leyendaItem}>
+          {PIECE_STATUSES.map((status) => (
+            <div key={status} className={s.leyendaItem}>
               <span
                 className={s.punto}
-                style={{ background: STATUS_COLORS[estado].color }}
+                style={{ background: STATUS_COLORS[status].color }}
               />
-              {STATUS_LABELS[estado]}
+              {STATUS_LABELS[status]}
             </div>
           ))}
         </div>

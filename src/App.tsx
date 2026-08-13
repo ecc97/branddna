@@ -30,16 +30,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <ProfileProvider>
-        <Contenido />
+        <AppRoutes />
       </ProfileProvider>
     </BrowserRouter>
   );
 }
 
-function Contenido() {
-  const { estado, error, recargar } = useProfile();
+function AppRoutes() {
+  const { state, error, reload } = useProfile();
 
-  if (estado === 'cargando') {
+  if (state === 'cargando') {
     return (
       <div className={s.pantalla}>
         <div className={s.caja}>
@@ -50,7 +50,7 @@ function Contenido() {
     );
   }
 
-  if (estado === 'error') {
+  if (state === 'error') {
     return (
       <div className={s.pantalla}>
         <div className={s.caja}>
@@ -64,7 +64,7 @@ function Contenido() {
             <br />
             <code>./venv/Scripts/python.exe -m uvicorn main:app --reload</code>
           </div>
-          <button className={s.reintentar} onClick={recargar}>
+          <button className={s.reintentar} onClick={reload}>
             Reintentar
           </button>
         </div>
@@ -74,7 +74,7 @@ function Contenido() {
 
   // Primera vez: la pantalla de marca sin barra de navegación, porque
   // todavía no hay ningún sitio al que navegar.
-  if (estado === 'sin-perfiles') {
+  if (state === 'sin-perfiles') {
     return (
       <div className={s.alta}>
         <BrandPage />
@@ -82,7 +82,7 @@ function Contenido() {
     );
   }
 
-  if (estado === 'eligiendo') {
+  if (state === 'eligiendo') {
     return <ProfilePicker />;
   }
 

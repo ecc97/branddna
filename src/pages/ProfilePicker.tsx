@@ -11,7 +11,7 @@ import { useProfile } from '../profile/profile-context';
 import s from './ProfilePicker.module.css';
 
 export function ProfilePicker() {
-  const { perfiles, seleccionar } = useProfile();
+  const { profiles, selectProfile } = useProfile();
 
   return (
     <div className={s.pantalla}>
@@ -23,15 +23,15 @@ export function ProfilePicker() {
         </p>
 
         <div className={s.lista}>
-          {perfiles.map((perfil) => (
+          {profiles.map((profile) => (
             <button
-              key={perfil.id}
+              key={profile.id}
               type="button"
               className={s.opcion}
-              onClick={() => seleccionar(perfil.id)}
+              onClick={() => selectProfile(profile.id)}
             >
-              <span className={s.nombre}>{perfil.business_name}</span>
-              <span className={s.detalle}>{perfil.what_they_sell}</span>
+              <span className={s.nombre}>{profile.business_name}</span>
+              <span className={s.detalle}>{profile.what_they_sell}</span>
             </button>
           ))}
         </div>

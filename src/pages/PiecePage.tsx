@@ -36,167 +36,167 @@ import {
   PIECE_TYPE_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
-  actualizarPieza,
-  eliminarPieza,
-  listarPiezas,
+  updatePiece,
+  deletePiece,
+  listPieces,
   type ContentPiece,
   type ContentPieceUpdate,
   type PieceStatus,
 } from '../api';
 import { DateStepper } from '../components/DateStepper';
-import { Toast, type Aviso } from '../components/Toast';
-import { usePerfilActivo } from '../profile/profile-context';
+import { Toast, type Notice } from '../components/Toast';
+import { useActiveProfile } from '../profile/profile-context';
 import s from './PiecePage.module.css';
 
 export function PiecePage() {
-  const perfil = usePerfilActivo();
-  const navegar = useNavigate();
+  const profile = useActiveProfile();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const [pieza, setPieza] = useState<ContentPiece | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [piece, setPiece] = useState<ContentPiece | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Borrador local: lo que el usuario está tocando, todavía sin enviar.
-  const [texto, setTexto] = useState('');
-  const [estado, setEstado] = useState<PieceStatus>('borrador');
-  const [fecha, setFecha] = useState<string | null>(null);
+  const [text, setText] = useState('');
+  const [status, setStatus] = useState<PieceStatus>('borrador');
+  const [date, setDate] = useState<string | null>(null);
 
-  const [guardando, setGuardando] = useState(false);
-  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
-  const [borrando, setBorrando] = useState(false);
-  const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   /** Copia los valores del servidor al borrador local. */
-  const sincronizar = useCallback((cargada: ContentPiece) => {
-    setPieza(cargada);
-    setTexto(cargada.generated_text);
-    setEstado(cargada.status);
-    setFecha(cargada.scheduled_date);
+  const syncFromServer = useCallback((loaded: ContentPiece) => {
+    setPiece(loaded);
+    setText(loaded.generated_text);
+    setStatus(loaded.status);
+    setDate(loaded.scheduled_date);
   }, []);
 
   useEffect(() => {
-    const controlador = new AbortController();
+    const controller = new AbortController();
 
-    async function cargar() {
-      setCargando(true);
+    async function load() {
+      setLoading(true);
       setError(null);
       try {
         // El backend no tiene GET /pieces/{id}: se pide la lista y se busca.
         // Ver la deuda anotada en la bitácora 08.
-        const todas = await listarPiezas(perfil.id, controlador.signal);
-        const encontrada = todas.find((p) => p.id === id);
-        if (encontrada) sincronizar(encontrada);
+        const all = await listPieces(profile.id, controller.signal);
+        const found = all.find((p) => p.id === id);
+        if (found) syncFromServer(found);
         else setError('Esta pieza ya no existe. Puede que la hayas eliminado.');
-      } catch (fallo) {
-        if (controlador.signal.aborted) return;
+      } catch (failure) {
+        if (controller.signal.aborted) return;
         setError(
-          fallo instanceof ApiError ? fallo.message : 'No se pudo cargar la pieza.'
+          failure instanceof ApiError ? failure.message : 'No se pudo cargar la pieza.'
         );
       } finally {
-        if (!controlador.signal.aborted) setCargando(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
-    void cargar();
-    return () => controlador.abort();
-  }, [perfil.id, id, sincronizar]);
+    void load();
+    return () => controller.abort();
+  }, [profile.id, id, syncFromServer]);
 
-  const hayCambios =
-    pieza !== null &&
-    (texto !== pieza.generated_text ||
-      estado !== pieza.status ||
-      fecha !== pieza.scheduled_date);
+  const hasChanges =
+    piece !== null &&
+    (text !== piece.generated_text ||
+      status !== piece.status ||
+      date !== piece.scheduled_date);
 
-  async function guardar() {
-    if (!pieza) return;
+  async function save() {
+    if (!piece) return;
 
     /*
       Se envía solo lo que cambió. El PUT del backend es parcial: lo que no se
       manda, no se toca. Enviar el objeto entero funcionaría, pero pisaría
       campos que este usuario no ha tocado.
     */
-    const cambios: ContentPieceUpdate = {};
-    if (texto !== pieza.generated_text) cambios.generated_text = texto;
-    if (estado !== pieza.status) cambios.status = estado;
-    if (fecha !== pieza.scheduled_date) cambios.scheduled_date = fecha;
+    const changes: ContentPieceUpdate = {};
+    if (text !== piece.generated_text) changes.generated_text = text;
+    if (status !== piece.status) changes.status = status;
+    if (date !== piece.scheduled_date) changes.scheduled_date = date;
 
-    setGuardando(true);
+    setSaving(true);
     try {
-      sincronizar(await actualizarPieza(pieza.id, cambios));
-      setAviso({ mensaje: 'Cambios guardados.' });
-    } catch (fallo) {
-      setAviso({
-        mensaje: fallo instanceof ApiError ? fallo.message : 'No se pudo guardar.',
-        tipo: 'error',
+      syncFromServer(await updatePiece(piece.id, changes));
+      setNotice({ message: 'Cambios guardados.' });
+    } catch (failure) {
+      setNotice({
+        message: failure instanceof ApiError ? failure.message : 'No se pudo guardar.',
+        kind: 'error',
       });
     } finally {
-      setGuardando(false);
+      setSaving(false);
     }
   }
 
-  function descartar() {
-    if (pieza) sincronizar(pieza);
+  function discard() {
+    if (piece) syncFromServer(piece);
   }
 
-  async function borrar() {
-    if (!pieza) return;
-    setBorrando(true);
+  async function remove() {
+    if (!piece) return;
+    setDeleting(true);
     try {
-      await eliminarPieza(pieza.id);
-      navegar('/calendario');
-    } catch (fallo) {
-      setBorrando(false);
-      setConfirmandoBorrado(false);
-      setAviso({
-        mensaje: fallo instanceof ApiError ? fallo.message : 'No se pudo eliminar.',
-        tipo: 'error',
+      await deletePiece(piece.id);
+      navigate('/calendario');
+    } catch (failure) {
+      setDeleting(false);
+      setConfirmingDelete(false);
+      setNotice({
+        message: failure instanceof ApiError ? failure.message : 'No se pudo eliminar.',
+        kind: 'error',
       });
     }
   }
 
-  function volver() {
+  function goBack() {
     // Salir con cambios sin guardar es una forma silenciosa de perder trabajo.
-    if (hayCambios && !window.confirm('Tienes cambios sin guardar. ¿Salir igualmente?')) {
+    if (hasChanges && !window.confirm('Tienes cambios sin guardar. ¿Salir igualmente?')) {
       return;
     }
-    navegar('/calendario');
+    navigate('/calendario');
   }
 
   return (
     <>
-      <button className={s.volver} onClick={volver}>
+      <button className={s.volver} onClick={goBack}>
         ← Volver al calendario
       </button>
 
-      {cargando && <div className={s.cargando}>Cargando…</div>}
+      {loading && <div className={s.cargando}>Cargando…</div>}
 
-      {error && !cargando && (
+      {error && !loading && (
         <div className={s.aviso} role="alert">
           {error}
         </div>
       )}
 
-      {pieza && !cargando && (
+      {piece && !loading && (
         <>
           <div className={s.meta}>
             <span
               className={s.punto}
-              style={{ background: STATUS_COLORS[pieza.status].color }}
+              style={{ background: STATUS_COLORS[piece.status].color }}
             />
-            {pieza.channel} · {PIECE_TYPE_LABELS[pieza.piece_type]}
+            {piece.channel} · {PIECE_TYPE_LABELS[piece.piece_type]}
           </div>
-          <div className={s.tema}>{pieza.topic}</div>
+          <div className={s.tema}>{piece.topic}</div>
 
           <section className={s.seccion}>
             <div className={s.seccionTitulo}>Texto</div>
             <textarea
               className={s.editor}
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
               aria-label="Texto de la pieza"
             />
-            <div className={s.contador}>{texto.length} caracteres</div>
+            <div className={s.contador}>{text.length} caracteres</div>
           </section>
 
           <section className={s.seccion}>
@@ -204,26 +204,26 @@ export function PiecePage() {
               Estado
             </div>
             <div className={s.estados} role="group" aria-labelledby="etiqueta-estado">
-              {PIECE_STATUSES.map((opcion) => {
-                const activo = opcion === estado;
+              {PIECE_STATUSES.map((option) => {
+                const isActive = option === status;
                 return (
                   <button
-                    key={opcion}
+                    key={option}
                     type="button"
                     className={s.estado}
-                    aria-pressed={activo}
-                    onClick={() => setEstado(opcion)}
+                    aria-pressed={isActive}
+                    onClick={() => setStatus(option)}
                     style={
-                      activo
+                      isActive
                         ? {
-                            borderColor: STATUS_COLORS[opcion].color,
-                            background: STATUS_COLORS[opcion].soft,
-                            color: STATUS_COLORS[opcion].color,
+                            borderColor: STATUS_COLORS[option].color,
+                            background: STATUS_COLORS[option].soft,
+                            color: STATUS_COLORS[option].color,
                           }
                         : undefined
                     }
                   >
-                    {STATUS_LABELS[opcion]}
+                    {STATUS_LABELS[option]}
                   </button>
                 );
               })}
@@ -232,15 +232,15 @@ export function PiecePage() {
 
           <section className={s.seccion}>
             <div className={s.seccionTitulo}>Fecha programada</div>
-            <DateStepper value={fecha} onChange={setFecha} />
+            <DateStepper value={date} onChange={setDate} />
           </section>
 
-          {hayCambios ? (
+          {hasChanges ? (
             <div className={s.barra}>
-              <button className={s.guardar} onClick={guardar} disabled={guardando}>
-                {guardando ? 'Guardando…' : 'Guardar cambios'}
+              <button className={s.guardar} onClick={save} disabled={saving}>
+                {saving ? 'Guardando…' : 'Guardar cambios'}
               </button>
-              <button className={s.descartar} onClick={descartar} disabled={guardando}>
+              <button className={s.descartar} onClick={discard} disabled={saving}>
                 Descartar
               </button>
             </div>
@@ -249,7 +249,7 @@ export function PiecePage() {
           )}
 
           <section className={s.zonaBorrado}>
-            {confirmandoBorrado ? (
+            {confirmingDelete ? (
               <div className={s.confirmacion}>
                 <div className={s.confirmacionTexto}>
                   Se eliminará esta pieza y desaparecerá del calendario. No se puede
@@ -258,22 +258,22 @@ export function PiecePage() {
                 <div className={s.confirmacionAcciones}>
                   <button
                     className={s.confirmarBorrado}
-                    onClick={borrar}
-                    disabled={borrando}
+                    onClick={remove}
+                    disabled={deleting}
                   >
-                    {borrando ? 'Eliminando…' : 'Sí, eliminar'}
+                    {deleting ? 'Eliminando…' : 'Sí, eliminar'}
                   </button>
                   <button
                     className={s.cancelar}
-                    onClick={() => setConfirmandoBorrado(false)}
-                    disabled={borrando}
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
                   >
                     Cancelar
                   </button>
                 </div>
               </div>
             ) : (
-              <button className={s.borrar} onClick={() => setConfirmandoBorrado(true)}>
+              <button className={s.borrar} onClick={() => setConfirmingDelete(true)}>
                 Eliminar pieza
               </button>
             )}
@@ -281,7 +281,7 @@ export function PiecePage() {
         </>
       )}
 
-      <Toast aviso={aviso} onCerrar={() => setAviso(null)} />
+      <Toast notice={notice} onClose={() => setNotice(null)} />
     </>
   );
 }

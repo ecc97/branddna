@@ -15,16 +15,16 @@ import type { GenerateRequest, GenerateResponse } from './types';
  * backend corta a los 45 s por llamada, así que dos intentos pueden acercarse
  * al minuto y medio en el peor caso.
  */
-const TIMEOUT_GENERACION_MS = 120_000;
+const GENERATION_TIMEOUT_MS = 120_000;
 
-export function generarContenido(
-  peticion: GenerateRequest,
+export function generateContent(
+  payload: GenerateRequest,
   signal?: AbortSignal
 ): Promise<GenerateResponse> {
   return request<GenerateResponse>('/generate', {
     method: 'POST',
-    body: peticion,
-    timeoutMs: TIMEOUT_GENERACION_MS,
+    body: payload,
+    timeoutMs: GENERATION_TIMEOUT_MS,
     signal,
   });
 }

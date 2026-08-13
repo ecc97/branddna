@@ -35,70 +35,70 @@
  * itera por punto de código, así que un emoji contaría como uno cuando ocupa
  * dos posiciones. Estos copys llevan emojis casi siempre.
  */
-export function normalizarConservandoLongitud(texto: string): string {
-  let salida = '';
-  for (let i = 0; i < texto.length; i++) {
-    const caracter = texto[i];
-    if (caracter === 'ñ' || caracter === 'Ñ') {
-      salida += 'ñ';
+export function normalizePreservingLength(text: string): string {
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === 'ñ' || char === 'Ñ') {
+      out += 'ñ';
       continue;
     }
     // \p{Mn} = «Mark, nonspacing»: las marcas diacríticas combinantes.
     // Se usa la propiedad Unicode con nombre en vez de un rango como
     // [U+0300-U+036F] porque ese rango obliga a escribir caracteres
     // invisibles en el código, que cualquier copia o formateo rompe.
-    const base = caracter.normalize('NFD').replace(/\p{Mn}/gu, '');
-    salida += (base || caracter).toLowerCase();
+    const base = char.normalize('NFD').replace(/\p{Mn}/gu, '');
+    out += (base || char).toLowerCase();
   }
-  return salida;
+  return out;
 }
 
-function escaparRegex(texto: string): string {
-  return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function patronDe(termino: string, global: boolean): RegExp {
+function patternFor(term: string, isGlobal: boolean): RegExp {
   return new RegExp(
-    `\\b${escaparRegex(normalizarConservandoLongitud(termino))}(?:es|s)?\\b`,
-    global ? 'g' : ''
+    `\\b${escapeRegex(normalizePreservingLength(term))}(?:es|s)?\\b`,
+    isGlobal ? 'g' : ''
   );
 }
 
-export type Rango = [inicio: number, fin: number];
+export type MatchRange = [start: number, end: number];
 
-export function buscarRangos(texto: string, terminos: string[]): Rango[] {
-  if (!terminos.length || !texto) return [];
+export function findRanges(text: string, terms: string[]): MatchRange[] {
+  if (!terms.length || !text) return [];
 
-  const normalizado = normalizarConservandoLongitud(texto);
+  const normalized = normalizePreservingLength(text);
   // Si la normalización desplazó algo, es preferible no resaltar nada a
   // resaltar el trozo equivocado.
-  if (normalizado.length !== texto.length) return [];
+  if (normalized.length !== text.length) return [];
 
-  const rangos: Rango[] = [];
-  for (const termino of terminos) {
-    const patron = patronDe(termino, true);
-    let coincidencia: RegExpExecArray | null;
-    while ((coincidencia = patron.exec(normalizado)) !== null) {
-      rangos.push([coincidencia.index, coincidencia.index + coincidencia[0].length]);
+  const ranges: MatchRange[] = [];
+  for (const term of terms) {
+    const pattern = patternFor(term, true);
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(normalized)) !== null) {
+      ranges.push([match.index, match.index + match[0].length]);
       // Evita un bucle infinito si el patrón llegara a casar cadena vacía.
-      if (coincidencia.index === patron.lastIndex) patron.lastIndex++;
+      if (match.index === pattern.lastIndex) pattern.lastIndex++;
     }
   }
 
   // Ordenar y fusionar solapamientos: dos términos pueden pisarse.
-  rangos.sort((a, b) => a[0] - b[0]);
-  const fusionados: Rango[] = [];
-  for (const [inicio, fin] of rangos) {
-    const ultimo = fusionados[fusionados.length - 1];
-    if (ultimo && inicio <= ultimo[1]) ultimo[1] = Math.max(ultimo[1], fin);
-    else fusionados.push([inicio, fin]);
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: MatchRange[] = [];
+  for (const [start, end] of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
   }
-  return fusionados;
+  return merged;
 }
 
 /** Términos de la lista que aparecen en el texto. */
-export function encontrarProhibidas(texto: string, terminos: string[]): string[] {
-  if (!terminos.length || !texto) return [];
-  const normalizado = normalizarConservandoLongitud(texto);
-  return terminos.filter((termino) => patronDe(termino, false).test(normalizado));
+export function findForbidden(text: string, terms: string[]): string[] {
+  if (!terms.length || !text) return [];
+  const normalized = normalizePreservingLength(text);
+  return terms.filter((term) => patternFor(term, false).test(normalized));
 }

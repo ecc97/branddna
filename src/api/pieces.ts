@@ -11,7 +11,7 @@ import type { ContentPiece, ContentPieceInput, ContentPieceUpdate } from './type
  * El backend ordena por `scheduled_date` dejando los nulos al final: primero
  * lo que ya está planificado, después lo que falta por ubicar.
  */
-export function listarPiezas(
+export function listPieces(
   profileId: string,
   signal?: AbortSignal
 ): Promise<ContentPiece[]> {
@@ -25,18 +25,18 @@ export function listarPiezas(
  * Nace sin fecha (`scheduled_date: null`) salvo que se indique otra cosa: la
  * pieza existe antes de programarse, que es el Flujo 3 del PRD.
  */
-export function crearPieza(datos: ContentPieceInput): Promise<ContentPiece> {
-  return request<ContentPiece>('/pieces', { method: 'POST', body: datos });
+export function createPiece(data: ContentPieceInput): Promise<ContentPiece> {
+  return request<ContentPiece>('/pieces', { method: 'POST', body: data });
 }
 
 /** Cambia texto, fecha o estado. Lo que no se envía, no se toca. */
-export function actualizarPieza(
+export function updatePiece(
   id: string,
-  cambios: ContentPieceUpdate
+  changes: ContentPieceUpdate
 ): Promise<ContentPiece> {
-  return request<ContentPiece>(`/pieces/${id}`, { method: 'PUT', body: cambios });
+  return request<ContentPiece>(`/pieces/${id}`, { method: 'PUT', body: changes });
 }
 
-export function eliminarPieza(id: string): Promise<void> {
+export function deletePiece(id: string): Promise<void> {
   return request<void>(`/pieces/${id}`, { method: 'DELETE' });
 }

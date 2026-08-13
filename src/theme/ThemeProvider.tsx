@@ -14,13 +14,13 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 
 import { THEME_STORAGE_KEY, ThemeContext, type Theme } from './theme-context';
 
-function leerTemaInicial(): Theme {
-  const enElDom = document.documentElement.getAttribute('data-theme');
-  return enElDom === 'dark' ? 'dark' : 'light';
+function readInitialTheme(): Theme {
+  const fromDom = document.documentElement.getAttribute('data-theme');
+  return fromDom === 'dark' ? 'dark' : 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(leerTemaInicial);
+  const [theme, setTheme] = useState<Theme>(readInitialTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((actual) => (actual === 'dark' ? 'light' : 'dark'));
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
   }, []);
 
   const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme]);

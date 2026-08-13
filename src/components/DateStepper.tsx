@@ -13,7 +13,7 @@
 
   1. Su valor es exactamente "AAAA-MM-DD", el mismo formato que
      `scheduled_date` en el backend. Cero conversión, y nunca se construye un
-     objeto Date, así que la trampa de zona horaria (ver lib/fechas.ts) no
+     objeto Date, así que la trampa de zona horaria (ver lib/dates.ts) no
      puede aparecer.
   2. Admite el valor vacío de forma natural, que es justo lo que necesitamos:
      una pieza guardada sin programar tiene `scheduled_date: null`.
@@ -23,20 +23,20 @@
   `color-scheme` en theme.css.
 */
 
-import { claveDeHoy, claveFecha, desdeClave, fechaLarga, sumarDias } from '../lib/fechas';
+import { todayKey, dateKey, fromDateKey, longDate, addDays } from '../lib/dates';
 import s from './DateStepper.module.css';
 
 interface DateStepperProps {
   /** "AAAA-MM-DD" o null si la pieza no está programada. */
   value: string | null;
-  onChange: (siguiente: string | null) => void;
+  onChange: (next: string | null) => void;
 }
 
 export function DateStepper({ value, onChange }: DateStepperProps) {
-  function desplazar(dias: number) {
+  function shiftDays(days: number) {
     if (!value) return;
-    // Toda la aritmética pasa por lib/fechas: local y sin objetos Date sueltos.
-    onChange(claveFecha(sumarDias(desdeClave(value), dias)));
+    // Toda la aritmética pasa por lib/dates: local y sin objetos Date sueltos.
+    onChange(dateKey(addDays(fromDateKey(value), days)));
   }
 
   return (
@@ -45,7 +45,7 @@ export function DateStepper({ value, onChange }: DateStepperProps) {
         <button
           type="button"
           className={s.paso}
-          onClick={() => desplazar(-1)}
+          onClick={() => shiftDays(-1)}
           disabled={!value}
           aria-label="Un día antes"
         >
@@ -63,7 +63,7 @@ export function DateStepper({ value, onChange }: DateStepperProps) {
         <button
           type="button"
           className={s.paso}
-          onClick={() => desplazar(1)}
+          onClick={() => shiftDays(1)}
           disabled={!value}
           aria-label="Un día después"
         >
@@ -72,20 +72,20 @@ export function DateStepper({ value, onChange }: DateStepperProps) {
       </div>
 
       <div className={s.atajos}>
-        <button type="button" className={s.atajo} onClick={() => onChange(claveDeHoy())}>
+        <button type="button" className={s.atajo} onClick={() => onChange(todayKey())}>
           Hoy
         </button>
         <button
           type="button"
           className={s.atajo}
-          onClick={() => onChange(claveFecha(sumarDias(new Date(), 1)))}
+          onClick={() => onChange(dateKey(addDays(new Date(), 1)))}
         >
           Mañana
         </button>
         <button
           type="button"
           className={s.atajo}
-          onClick={() => onChange(claveFecha(sumarDias(new Date(), 7)))}
+          onClick={() => onChange(dateKey(addDays(new Date(), 7)))}
         >
           En una semana
         </button>
@@ -98,7 +98,7 @@ export function DateStepper({ value, onChange }: DateStepperProps) {
 
       <div className={s.leyenda}>
         {value
-          ? `Programada para el ${fechaLarga(value)}.`
+          ? `Programada para el ${longDate(value)}.`
           : 'Sin programar. Aparecerá al final del calendario hasta que le pongas fecha.'}
       </div>
     </div>

@@ -12,17 +12,17 @@ export * from './types';
 export * from './labels';
 
 export {
-  listarPerfiles,
-  obtenerPerfil,
-  crearPerfil,
-  actualizarPerfil,
+  listProfiles,
+  getProfile,
+  createProfile,
+  updateProfile,
 } from './profiles';
 
-export { generarContenido } from './generate';
+export { generateContent } from './generate';
 
 export {
-  listarPiezas,
-  crearPieza,
-  actualizarPieza,
-  eliminarPieza,
+  listPieces,
+  createPiece,
+  updatePiece,
+  deletePiece,
 } from './pieces';

@@ -9,16 +9,16 @@
 import { request } from './client';
 import type { BrandProfile, BrandProfileInput, BrandProfileUpdate } from './types';
 
-export function listarPerfiles(signal?: AbortSignal): Promise<BrandProfile[]> {
+export function listProfiles(signal?: AbortSignal): Promise<BrandProfile[]> {
   return request<BrandProfile[]>('/profiles', { signal });
 }
 
-export function obtenerPerfil(id: string, signal?: AbortSignal): Promise<BrandProfile> {
+export function getProfile(id: string, signal?: AbortSignal): Promise<BrandProfile> {
   return request<BrandProfile>(`/profiles/${id}`, { signal });
 }
 
-export function crearPerfil(datos: BrandProfileInput): Promise<BrandProfile> {
-  return request<BrandProfile>('/profiles', { method: 'POST', body: datos });
+export function createProfile(data: BrandProfileInput): Promise<BrandProfile> {
+  return request<BrandProfile>('/profiles', { method: 'POST', body: data });
 }
 
 /**
@@ -28,9 +28,9 @@ export function crearPerfil(datos: BrandProfileInput): Promise<BrandProfile> {
  * El perfil es contexto para generar contenido nuevo, no una plantilla que se
  * reaplique a lo que ya se aprobó.
  */
-export function actualizarPerfil(
+export function updateProfile(
   id: string,
-  cambios: BrandProfileUpdate
+  changes: BrandProfileUpdate
 ): Promise<BrandProfile> {
-  return request<BrandProfile>(`/profiles/${id}`, { method: 'PUT', body: cambios });
+  return request<BrandProfile>(`/profiles/${id}`, { method: 'PUT', body: changes });
 }

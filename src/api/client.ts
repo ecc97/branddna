@@ -14,7 +14,7 @@ const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000').repla
 );
 
 /** 20 s cubre de sobra cualquier consulta a Supabase. */
-const TIMEOUT_POR_DEFECTO = 20_000;
+const DEFAULT_TIMEOUT_MS = 20_000;
 
 /**
  * Error de la API con el estado HTTP y un mensaje ya listo para mostrar.
@@ -40,7 +40,7 @@ export class ApiError extends Error {
   }
 
   /** true si el problema es del servidor o de la red, no de lo que envió el usuario. */
-  get esFalloDelServidor(): boolean {
+  get isServerFailure(): boolean {
     return this.status === 0 || this.status >= 500;
   }
 }
@@ -55,7 +55,7 @@ interface ValidationIssue {
   ctx?: { expected?: string };
 }
 
-const ETIQUETAS_CAMPO: Record<string, string> = {
+const FIELD_LABELS: Record<string, string> = {
   business_name: 'El nombre del negocio',
   what_they_sell: 'Qué vende',
   tone: 'El tono',
@@ -78,7 +78,7 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
  * Se traducen los tipos de error frecuentes; para el resto se deja el original,
  * que es mejor que nada.
  */
-function explicarProblema(issue: ValidationIssue): string {
+function describeProblem(issue: ValidationIssue): string {
   switch (issue.type) {
     case 'missing':
       return 'es obligatorio';
@@ -100,27 +100,27 @@ function explicarProblema(issue: ValidationIssue): string {
   }
 }
 
-function mensajeDeValidacion(issues: ValidationIssue[]): string {
-  const frases = issues.map((issue) => {
+function validationMessage(issues: ValidationIssue[]): string {
+  const sentences = issues.map((issue) => {
     // `loc` viene como ["body", "channel"] o ["query", "profile_id"].
     // El nombre real del campo es el último tramo de texto.
-    const campo = [...issue.loc].reverse().find((p) => typeof p === 'string' && p !== 'body' && p !== 'query');
-    const etiqueta = typeof campo === 'string' ? (ETIQUETAS_CAMPO[campo] ?? campo) : 'Un dato';
-    return `${etiqueta} ${explicarProblema(issue)}`;
+    const field = [...issue.loc].reverse().find((p) => typeof p === 'string' && p !== 'body' && p !== 'query');
+    const label = typeof field === 'string' ? (FIELD_LABELS[field] ?? field) : 'Un dato';
+    return `${label} ${describeProblem(issue)}`;
   });
 
-  return frases.join('. ') + '.';
+  return sentences.join('. ') + '.';
 }
 
 // --------------------------------------------------------------------------
 // Interpretación de la respuesta de error
 // --------------------------------------------------------------------------
-function construirError(status: number, cuerpo: unknown): ApiError {
-  const detail = (cuerpo as { detail?: unknown } | null)?.detail;
+function buildError(status: number, body: unknown): ApiError {
+  const detail = (body as { detail?: unknown } | null)?.detail;
 
   // 422: lista de problemas de validación.
   if (Array.isArray(detail)) {
-    return new ApiError(status, mensajeDeValidacion(detail as ValidationIssue[]), detail);
+    return new ApiError(status, validationMessage(detail as ValidationIssue[]), detail);
   }
 
   // 400 / 404 / 502: el backend ya manda un mensaje en español.
@@ -129,19 +129,19 @@ function construirError(status: number, cuerpo: unknown): ApiError {
   }
 
   // Sin cuerpo útil: se explica el código.
-  const genericos: Record<number, string> = {
+  const generic: Record<number, string> = {
     404: 'No se encontró lo que buscabas.',
     500: 'Error interno del servidor.',
     502: 'El servidor no pudo completar la operación.',
     503: 'El servicio no está disponible ahora mismo.',
   };
-  return new ApiError(status, genericos[status] ?? `Error del servidor (${status}).`, cuerpo);
+  return new ApiError(status, generic[status] ?? `Error del servidor (${status}).`, body);
 }
 
 // --------------------------------------------------------------------------
 // Petición
 // --------------------------------------------------------------------------
-interface OpcionesPeticion {
+interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   /** Milisegundos. `/generate` necesita mucho más que el resto. */
@@ -149,21 +149,21 @@ interface OpcionesPeticion {
   signal?: AbortSignal;
 }
 
-export async function request<T>(path: string, opciones: OpcionesPeticion = {}): Promise<T> {
-  const { method = 'GET', body, timeoutMs = TIMEOUT_POR_DEFECTO, signal } = opciones;
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, timeoutMs = DEFAULT_TIMEOUT_MS, signal } = options;
 
   // Se combina el timeout propio con un posible AbortSignal del componente
   // (por ejemplo, si el usuario cambia de pantalla mientras carga).
-  const porTiempo = AbortSignal.timeout(timeoutMs);
-  const señal = signal ? AbortSignal.any([signal, porTiempo]) : porTiempo;
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
-  let respuesta: Response;
+  let response: Response;
   try {
-    respuesta = await fetch(`${BASE_URL}${path}`, {
+    response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
-      signal: señal,
+      signal: combinedSignal,
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
@@ -181,25 +181,27 @@ export async function request<T>(path: string, opciones: OpcionesPeticion = {}):
   }
 
   // 204 No Content: DELETE correcto, sin cuerpo que leer.
-  if (respuesta.status === 204) {
+  if (response.status === 204) {
     return undefined as T;
   }
 
-  let cuerpo: unknown = null;
-  const texto = await respuesta.text();
-  if (texto) {
+  // `responseBody` y no `body`: ese nombre ya lo ocupa el cuerpo de la
+  // petición, desestructurado de las opciones más arriba.
+  let responseBody: unknown = null;
+  const text = await response.text();
+  if (text) {
     try {
-      cuerpo = JSON.parse(texto);
+      responseBody = JSON.parse(text);
     } catch {
-      cuerpo = texto;
+      responseBody = text;
     }
   }
 
-  if (!respuesta.ok) {
-    throw construirError(respuesta.status, cuerpo);
+  if (!response.ok) {
+    throw buildError(response.status, responseBody);
   }
 
-  return cuerpo as T;
+  return responseBody as T;
 }
 
 /** Expuesto para poder mostrarlo en pantalla al diagnosticar problemas. */
