@@ -66,18 +66,6 @@ export interface BrandProfile extends Required<BrandProfileInput> {
 }
 
 /**
- * Lo único que devuelve el listado público `GET /profiles`.
- *
- * Sin tono, sin prohibiciones, sin ejemplos: eso exige la llave. El listado
- * existe para poder ofrecer un selector de marca al arrancar, no para exponer
- * el perfil.
- */
-export interface BrandProfileSummary {
-  id: string;
-  business_name: string;
-}
-
-/**
  * Respuesta de la creación: la única vez que se ve la llave en claro.
  *
  * A partir de ahí el backend solo guarda su hash, así que ni él mismo puede

@@ -12,10 +12,10 @@ export * from './types';
 export * from './labels';
 
 export {
-  listProfiles,
   getProfile,
   createProfile,
   updateProfile,
+  deleteProfile,
   rotateToken,
 } from './profiles';
 

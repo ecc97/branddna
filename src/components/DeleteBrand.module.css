@@ -1,0 +1,120 @@
+.zona {
+  padding: var(--space-4);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-xl);
+  background: var(--s1);
+}
+
+/* Abierto sube el contraste: es una decisión irreversible, no un ajuste más. */
+.zonaAbierta {
+  composes: zona;
+  border-color: var(--warn);
+  animation: rise 0.25s ease both;
+}
+
+.titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--warn-t);
+  margin-bottom: 6px;
+}
+
+.texto {
+  font-size: 13px;
+  color: var(--t4);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}
+
+.advertencia {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--s2);
+  border-left: 3px solid var(--warn);
+  font-size: 13px;
+  color: var(--warn-t);
+  line-height: 1.5;
+  margin-bottom: var(--space-4);
+}
+
+.abrir {
+  padding: 11px 16px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--t4);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.abrir:hover {
+  color: var(--warn-t);
+  border-color: var(--warn);
+}
+
+.etiqueta {
+  display: block;
+  font-size: 13.5px;
+  color: var(--t2);
+  margin-bottom: var(--space-2);
+}
+
+.campo {
+  width: 100%;
+  padding: 12px 14px;
+  /* 16px evita que Safari en iOS haga zoom al enfocar. */
+  font-size: 16px;
+  color: var(--t0);
+  background: var(--s1);
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  margin-bottom: var(--space-3);
+}
+
+.acciones {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.confirmar {
+  padding: 12px 18px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--warn);
+  color: var(--on-acc);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmar:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cancelar {
+  padding: 12px 18px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-md);
+  background: var(--s1);
+  color: var(--t3);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelar:hover:not(:disabled) {
+  background: var(--s2);
+}
+
+.error {
+  margin-top: var(--space-3);
+  padding: 10px 12px;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md);
+  color: var(--warn-t);
+  font-size: 13.5px;
+  line-height: 1.45;
+}

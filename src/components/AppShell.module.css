@@ -4,6 +4,75 @@
   flex-direction: column;
 }
 
+/*
+  Cabecera pegajosa: al desplazar por el calendario o por una pieza larga, se
+  sigue viendo con qué marca se está trabajando. Con varias marcas eso no es
+  adorno, es lo que evita publicar en la que no toca.
+*/
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--s0);
+  border-bottom: 1px solid var(--b2);
+}
+
+.cabeceraInterior {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-5);
+}
+
+.selectorMarca {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-left: -10px;
+  border-radius: var(--r-sm);
+  color: var(--t1);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.selectorMarca:hover {
+  background: var(--s2);
+}
+
+.marcaNombre {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t1);
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marcaChevron {
+  font-size: 13px;
+  color: var(--t4);
+  line-height: 1;
+}
+
+/* Aparece al pasar el ratón: en móvil no cabe, y ahí el gesto es evidente. */
+.marcaAyuda {
+  font-size: 12px;
+  color: var(--t5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.selectorMarca:hover .marcaAyuda {
+  opacity: 1;
+}
+
+@media (max-width: 480px) {
+  .marcaAyuda {
+    display: none;
+  }
+}
+
 .main {
   flex: 1;
   width: 100%;
@@ -11,7 +80,7 @@
   margin: 0 auto;
   /* El relleno inferior deja sitio a la barra fija para que nunca tape el
      último elemento de la página. */
-  padding: var(--space-6) var(--space-5) 108px;
+  padding: var(--space-5) var(--space-5) 108px;
 }
 
 .barra {

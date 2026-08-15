@@ -1,14 +1,12 @@
-.pantalla {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
-}
-
-.caja {
+/*
+  El inicio se monta en dos sitios: suelto (sin marca activa) y dentro de la
+  app en la ruta `/`. El contenedor exterior lo pone quien lo monta, así que
+  aquí solo se define el contenido.
+*/
+.inner {
   width: 100%;
   max-width: var(--content-max);
+  margin: 0 auto;
 }
 
 .eyebrow {
@@ -19,26 +17,28 @@
 }
 
 .titulo {
-  font-size: 32px;
+  font-size: 34px;
   margin: var(--space-2) 0 6px;
 }
 
 .lead {
   color: var(--t3);
   font-size: 15px;
-  margin-bottom: var(--space-5);
+  line-height: 1.5;
+  margin-bottom: var(--space-6);
 }
 
 .lista {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 
-.opcion {
+.marca {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: var(--space-3);
   width: 100%;
   padding: var(--space-4);
   text-align: left;
@@ -49,43 +49,92 @@
   transition: all 0.15s ease;
 }
 
-.opcion:hover {
+.marca:hover:not(:disabled) {
   border-color: var(--acc);
   background: var(--acc-soft);
 }
 
+.marca:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.marcaActiva {
+  composes: marca;
+  border-color: var(--acc);
+}
+
 .nombre {
+  flex: 1;
+  min-width: 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--t1);
-}
-
-.detalle {
-  font-size: 13.5px;
-  color: var(--t4);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* La marca cuya llave ya conocemos se distingue de la que la pedirá. */
-.detalleListo {
-  composes: detalle;
-  color: var(--ok-t);
+.insignia {
+  flex: none;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acc-t);
+  background: var(--acc-soft);
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
 }
 
-.opcion:disabled {
-  opacity: 0.6;
-  cursor: default;
+.flecha {
+  flex: none;
+  color: var(--t5);
+  font-size: 18px;
 }
 
-/* --- Pedir la llave --- */
-.formularioLlave {
+.acciones {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin: var(--space-2) 0 0;
+}
+
+.crear {
+  padding: 16px;
+  border: none;
+  border-radius: var(--r-lg);
+  background: var(--acc);
+  color: var(--on-acc);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.crear:hover {
+  background: var(--acc-h);
+}
+
+.secundario {
+  padding: 14px;
+  border: 1px solid var(--b1);
+  border-radius: var(--r-lg);
+  background: var(--s1);
+  color: var(--t2);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secundario:hover {
+  background: var(--s2);
+}
+
+/* --- Entrar con código --- */
+.formularioCodigo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--acc);
   border-radius: var(--r-xl);
@@ -93,25 +142,35 @@
   animation: rise 0.25s ease both;
 }
 
-.etiquetaLlave {
+.etiquetaCodigo {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--t2);
 }
 
-.campoLlave {
+.pistaCodigo {
+  font-size: 13px;
+  color: var(--t4);
+  line-height: 1.45;
+}
+
+.campoCodigo {
   width: 100%;
+  min-height: 76px;
   padding: 12px 14px;
   /* 16px evita que Safari en iOS haga zoom al enfocar. */
   font-size: 16px;
   font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  line-height: 1.5;
   color: var(--t0);
   background: var(--s1);
   border: 1px solid var(--b1);
   border-radius: var(--r-md);
+  resize: vertical;
+  word-break: break-all;
 }
 
-.accionesLlave {
+.accionesCodigo {
   display: flex;
   gap: var(--space-2);
 }
@@ -137,7 +196,7 @@
   cursor: default;
 }
 
-.cancelarLlave {
+.cancelar {
   padding: 12px 16px;
   border: 1px solid var(--b1);
   border-radius: var(--r-md);
@@ -157,4 +216,27 @@
   color: var(--warn-t);
   font-size: 14px;
   line-height: 1.45;
+}
+
+.nota {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--b2);
+  font-size: 12.5px;
+  color: var(--t5);
+  line-height: 1.5;
+}
+
+.olvidar {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--t5);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.olvidar:hover {
+  color: var(--warn-t);
 }

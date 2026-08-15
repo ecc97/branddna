@@ -1,12 +1,9 @@
 /*
   Endpoints del perfil de marca.
 
-  `listProfiles()` no estaba en el contrato original del backend. Se añadió
-  porque sin autenticación el frontend no tiene forma de saber qué perfil le
-  corresponde al abrir la app: necesita listarlos y elegir.
-
-  Ese listado es **público y devuelve solo id y nombre**. Todo lo demás —tono,
-  prohibiciones, ejemplos— exige la llave de esa marca.
+  No hay función de listado: el backend ya no enumera marcas. Las que conoce
+  este navegador salen de `profile/brand-storage.ts`, y para entrar en otra
+  hace falta su código de acceso.
 */
 
 import { request } from './client';
@@ -14,14 +11,9 @@ import type {
   BrandProfile,
   BrandProfileCreated,
   BrandProfileInput,
-  BrandProfileSummary,
   BrandProfileUpdate,
   TokenRotated,
 } from './types';
-
-export function listProfiles(signal?: AbortSignal): Promise<BrandProfileSummary[]> {
-  return request<BrandProfileSummary[]>('/profiles', { signal });
-}
 
 /**
  * Perfil completo. Exige la llave.
@@ -59,6 +51,17 @@ export function updateProfile(
   changes: BrandProfileUpdate
 ): Promise<BrandProfile> {
   return request<BrandProfile>(`/profiles/${id}`, { method: 'PUT', body: changes });
+}
+
+/**
+ * Elimina la marca y, en cascada, todas sus piezas.
+ *
+ * **Irreversible**: este proyecto no tiene copias de seguridad configuradas en
+ * Supabase, así que no hay de dónde restaurar. La interfaz lo dice y exige
+ * escribir el nombre de la marca antes de llamar aquí.
+ */
+export function deleteProfile(id: string): Promise<void> {
+  return request<void>(`/profiles/${id}`, { method: 'DELETE' });
 }
 
 /**

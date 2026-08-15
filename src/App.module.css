@@ -52,9 +52,15 @@
   background: var(--acc-h);
 }
 
-/* El alta inicial usa la pantalla de marca, pero sin barra de navegación:
-   todavía no hay adónde navegar. */
-.alta {
+/*
+  Contenedor de las pantallas que se muestran SIN marca activa: el inicio y el
+  alta de una marca. No llevan barra de navegación porque todavía no hay adónde
+  navegar.
+
+  No se centra verticalmente: el formulario de alta es largo y centrarlo lo
+  dejaría a medias fuera de la pantalla.
+*/
+.suelto {
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;

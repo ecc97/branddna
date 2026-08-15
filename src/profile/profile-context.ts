@@ -1,41 +1,52 @@
 /*
-  Perfil de marca activo y su llave de acceso.
+  Marca activa y las marcas que conoce este navegador.
 
-  El problema que resuelve: no hay autenticación (el PRD la deja fuera de
-  alcance), así que al abrir la app no existe ningún "usuario actual" del que
-  deducir el perfil. Y desde que cada marca tiene llave, tampoco basta con
-  recordar un id: hay que recordar también la llave que abre ese id.
+  ── El cambio de modelo ───────────────────────────────────────────────────
 
-  Estrategia:
-  - `GET /profiles` da la lista pública (solo id y nombre) para poder ofrecer
-    un selector.
-  - El navegador guarda un mapa `{ id: llave }` de las marcas que conoce.
-  - El id recordado se contrasta **siempre** contra la lista: si alguien borró
-    ese perfil en Supabase, la app estaría pidiendo un id fantasma.
-  - Si la llave guardada deja de valer (rotada desde otro navegador), el 403 la
-    descarta y se vuelve a pedir.
+  Antes la app pedía al servidor la lista de marcas y el usuario elegía de ahí.
+  Eso tenía dos problemas: el servidor revelaba a cualquiera qué negocios usan
+  la app, y la lista crecía con la base de datos aunque al usuario solo le
+  importaran una o dos.
 
-  Contexto y hook viven separados del provider por lo mismo que en el tema:
-  un archivo que exporta un componente y otras cosas rompe React Fast Refresh.
+  Ahora **el navegador es quien sabe qué marcas conoce**. Guarda un registro
+  `{ id, nombre, llave }` de cada una, y para entrar en otra hace falta su
+  código de acceso. El servidor ya no lista nada.
+
+  Consecuencias que conviene tener presentes:
+
+  - La lista del inicio está acotada por lo que este navegador ha visto —una o
+    tres— y no por el tamaño de la base. No hace falta paginar.
+  - "No hay marcas" pasa a significar "este navegador no conoce ninguna", no
+    "la base está vacía". Los textos lo dicen así.
+  - Arrancar sin marcas conocidas **no toca la red**: la app abre al instante.
 */
 
 import { createContext, useContext } from 'react';
 
-import type { BrandProfile, BrandProfileSummary } from '../api';
+import type { BrandProfile } from '../api';
 
-export const PROFILE_STORAGE_KEY = 'branddna-profile-id';
+/** Última marca usada, para no preguntar en cada recarga. */
+export const ACTIVE_BRAND_KEY = 'branddna-profile-id';
 
-/** Mapa `{ profileId: token }` de las marcas que conoce este navegador. */
-export const TOKENS_STORAGE_KEY = 'branddna-brand-tokens';
+/** Registro de marcas conocidas: `{ [id]: { name, token } }`. */
+export const KNOWN_BRANDS_KEY = 'branddna-brands';
+
+/** Clave anterior, solo con llaves. Se migra al arrancar y se descarta. */
+export const LEGACY_TOKENS_KEY = 'branddna-brand-tokens';
+
+export interface KnownBrand {
+  id: string;
+  /** Nombre cacheado para poder listar sin llamar al servidor. */
+  name: string;
+  token: string;
+}
 
 export type ProfileState =
-  /** Consultando la lista de marcas. */
+  /** Comprobando la marca recordada contra el servidor. */
   | 'loading'
-  /** No se pudo hablar con el backend. */
+  /** El backend no responde. */
   | 'error'
-  /** No hay ninguna marca todavía: toca crear la primera. */
-  | 'no-profiles'
-  /** Hay marcas, pero ninguna activa: hay que elegir y quizá pegar su llave. */
+  /** Sin marca activa: toca elegir una conocida, entrar con código o crear. */
   | 'choosing'
   /** Hay marca activa y la app puede funcionar. */
   | 'ready';
@@ -43,22 +54,25 @@ export type ProfileState =
 export interface ProfileContextValue {
   state: ProfileState;
   error: string | null;
-  /** Listado público: solo id y nombre. */
-  profiles: BrandProfileSummary[];
-  /** Perfil completo de la marca activa. Requiere llave. */
+  /** Marcas que este navegador recuerda. Nunca viene del servidor. */
+  knownBrands: KnownBrand[];
   activeProfile: BrandProfile | null;
-  /** Llave de la marca activa, para poder mostrarla en «Mi marca». */
   activeToken: string | null;
-  /** Si este navegador recuerda la llave de esa marca. */
-  hasKeyFor: (id: string) => boolean;
+  /** Código de acceso de la marca activa, listo para copiar. */
+  activeCode: string | null;
+
   /**
-   * Entra en una marca. Si no se pasa llave, se usa la recordada.
-   * Devuelve `null` si entró, o un mensaje en español si la llave no vale.
+   * Entra en una marca conocida. Devuelve `null` si entró, o un mensaje en
+   * español si la llave ya no vale o la marca no existe.
    */
-  selectProfile: (id: string, token?: string) => Promise<string | null>;
+  enterBrand: (profileId: string) => Promise<string | null>;
+  /** Entra con un código pegado. Mismo contrato de retorno. */
+  enterWithCode: (code: string) => Promise<string | null>;
   /** Registra una marca recién creada (con su llave) o actualizada. */
   registerProfile: (profile: BrandProfile, token?: string) => void;
-  /** Vuelve a consultar la lista al backend. */
+  /** Olvida una marca en ESTE navegador. No la borra del servidor. */
+  forgetBrand: (profileId: string) => void;
+  /** Reintenta la comprobación inicial tras un error de red. */
   reload: () => void;
 }
 
@@ -73,17 +87,16 @@ export function useProfile(): ProfileContextValue {
 }
 
 /**
- * Igual que `useProfile`, pero garantiza que hay un perfil activo.
+ * Igual que `useProfile`, pero garantiza que hay una marca activa.
  *
- * Sirve para las pantallas que solo se montan cuando el estado es 'ready'
- * (generador, calendario). Así no tienen que comprobar `null` en cada línea:
- * si alguna vez se montaran antes de tiempo, el error sería inmediato y claro
- * en vez de un `undefined` propagándose.
+ * Para las pantallas que solo se montan con `state === 'ready'`. Así no
+ * comprueban `null` en cada línea, y si alguna vez se montaran antes de tiempo
+ * el error sería inmediato y claro en vez de un `undefined` propagándose.
  */
 export function useActiveProfile(): BrandProfile {
   const { activeProfile } = useProfile();
   if (!activeProfile) {
-    throw new Error('No hay perfil activo: esta pantalla no debería estar montada.');
+    throw new Error('No hay marca activa: esta pantalla no debería estar montada.');
   }
   return activeProfile;
 }

@@ -1,18 +1,18 @@
 /*
   Pantalla del perfil de marca (Flujos 1 y 4 del PRD).
 
-  Cubre tres situaciones con el mismo formulario:
-  - **Alta inicial**: no hay ninguna marca todavía.
-  - **Edición**: modificar la marca activa.
-  - **Marca nueva**: crear otra cuando ya existe alguna.
+  Sirve para crear y para editar. Cuál de las dos lo decide `creating`, que
+  llega por props desde la ruta (`/marca/nueva` frente a `/marca`) en vez de ser
+  estado interno: así el modo está en la URL, se puede enlazar, y no hay una
+  máquina de estados que sincronizar dentro del componente.
 
-  Las tres se reducen a una sola pregunta —¿esto crea o actualiza?— resuelta
-  por `isCreating`. Mantener tres ramas separadas es justo donde aparecen los
-  bugs de "guardé y se sobrescribió lo que no tocaba".
+  El selector de marca que había aquí se fue a la pantalla de inicio. Estaba mal
+  colocado por dos motivos: listaba marcas ajenas, y ponía una decisión de
+  "¿en qué marca estoy?" dentro de una pantalla que edita *esta* marca.
 
   Regla dura del PRD que se respeta por construcción: editar el perfil NO
-  reescribe las piezas ya guardadas. En este archivo no hay ninguna llamada
-  que toque `/pieces`; no puede pasar por accidente.
+  reescribe las piezas ya guardadas. Aquí no hay ninguna llamada que escriba en
+  `/pieces`; no puede pasar por accidente.
 */
 
 import { useEffect, useState, type FormEvent } from 'react';
@@ -21,15 +21,19 @@ import { useNavigate } from 'react-router';
 import {
   ApiError,
   createProfile,
+  deleteProfile,
+  listPieces,
   rotateToken,
   updateProfile,
   type BrandProfile,
 } from '../api';
+import { DeleteBrand } from '../components/DeleteBrand';
 import { TagInput } from '../components/TagInput';
 import { TextArea, TextInput } from '../components/TextInput';
 import { KeySettings, NewKeyPanel } from '../components/TokenPanel';
 import { ToneSelector } from '../components/ToneSelector';
 import { Toast, type Notice } from '../components/Toast';
+import { buildAccessCode } from '../lib/access-code';
 import { useProfile } from '../profile/profile-context';
 import s from './BrandPage.module.css';
 
@@ -79,36 +83,43 @@ const REQUIRED_FIELDS: { field: keyof BrandForm; notice: string }[] = [
   { field: 'target_audience', notice: 'Di a quién le hablas.' },
 ];
 
-export function BrandPage() {
-  const { activeProfile, activeToken, profiles, registerProfile, selectProfile } =
+export function BrandPage({ creating = false }: { creating?: boolean }) {
+  const { activeProfile, activeCode, knownBrands, registerProfile, forgetBrand } =
     useProfile();
   const navigate = useNavigate();
 
-  /** 'nueva' es una marca adicional; el alta inicial no necesita modo. */
-  const [mode, setMode] = useState<'editar' | 'nueva'>('editar');
-  const isCreating = activeProfile === null || mode === 'nueva';
-  const isFirstEver = activeProfile === null;
-
   const [form, setForm] = useState<BrandForm>(() =>
-    activeProfile ? fromProfile(activeProfile) : EMPTY_FORM
+    creating || !activeProfile ? EMPTY_FORM : fromProfile(activeProfile)
   );
   const [errors, setErrors] = useState<Partial<Record<keyof BrandForm, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
-  /** Llave recién emitida. Solo se ve una vez, justo al crear la marca. */
-  const [newKey, setNewKey] = useState<string | null>(null);
+  /** Código recién emitido. Solo se ve una vez, justo al crear la marca. */
+  const [newCode, setNewCode] = useState<string | null>(null);
+  /** Cuántas piezas se perderían al borrar. `null` mientras se cuentan. */
+  const [pieceCount, setPieceCount] = useState<number | null>(null);
 
   /*
-    Al cambiar de marca activa, el formulario pasa a mostrar la nueva.
-    Se observa el id y no el objeto: guardar cambios en la MISMA marca
-    devuelve un objeto distinto, y eso no debe descartar lo que se escribió.
+    Al cambiar de marca activa el formulario pasa a mostrar la nueva. Se observa
+    el id y no el objeto: guardar cambios en la MISMA marca devuelve un objeto
+    distinto, y eso no debe descartar lo que se escribió.
   */
   const activeId = activeProfile?.id;
   useEffect(() => {
-    if (activeProfile && mode === 'editar') setForm(fromProfile(activeProfile));
+    if (!creating && activeProfile) setForm(fromProfile(activeProfile));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId]);
+  }, [activeId, creating]);
+
+  // Para poder decir "y sus 7 piezas" en vez de "y todo tu contenido".
+  useEffect(() => {
+    if (creating || !activeId) return;
+    const controller = new AbortController();
+    listPieces(activeId, controller.signal)
+      .then((pieces) => setPieceCount(pieces.length))
+      .catch(() => setPieceCount(null));
+    return () => controller.abort();
+  }, [activeId, creating]);
 
   function updateField<C extends keyof BrandForm>(field: C, value: BrandForm[C]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -120,21 +131,6 @@ export function BrandPage() {
       delete next[field];
       return next;
     });
-  }
-
-  function startNewBrand() {
-    setMode('nueva');
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setFormError(null);
-    setNewKey(null);
-  }
-
-  function cancelNewBrand() {
-    setMode('editar');
-    setForm(activeProfile ? fromProfile(activeProfile) : EMPTY_FORM);
-    setErrors({});
-    setFormError(null);
   }
 
   function validate(): boolean {
@@ -164,16 +160,13 @@ export function BrandPage() {
 
     setSaving(true);
     try {
-      if (isCreating) {
+      if (creating) {
         const created = await createProfile(payload);
-        // La llave viaja solo en esta respuesta: se entrega al provider para
-        // que la recuerde, y se muestra una vez en pantalla.
         registerProfile(created, created.access_token);
         setForm(fromProfile(created));
-        setMode('editar');
-        setNewKey(created.access_token);
-        // Antes se navegaba a /generar al crear la primera marca. Ya no:
-        // primero hay que enseñar la llave, porque es la única vez que se ve.
+        // No se navega: primero hay que enseñar el código, porque es la única
+        // vez que existe en claro.
+        setNewCode(buildAccessCode(created.id, created.access_token));
       } else {
         const saved = await updateProfile(activeProfile!.id, payload);
         registerProfile(saved);
@@ -196,70 +189,54 @@ export function BrandPage() {
       registerProfile(activeProfile, access_token);
       return null;
     } catch (failure) {
-      return failure instanceof ApiError ? failure.message : 'No se pudo rotar la llave.';
+      return failure instanceof ApiError ? failure.message : 'No se pudo rotar el código.';
     }
   }
 
-  async function switchBrand(id: string) {
-    const failure = await selectProfile(id);
-    if (failure) setFormError(failure);
+  async function handleDelete(): Promise<string | null> {
+    if (!activeProfile) return 'No hay marca activa.';
+    try {
+      await deleteProfile(activeProfile.id);
+      // Olvidarla también aquí: si no, el navegador seguiría ofreciendo una
+      // marca que ya no existe y fallaría al entrar.
+      forgetBrand(activeProfile.id);
+      navigate('/');
+      return null;
+    } catch (failure) {
+      return failure instanceof ApiError ? failure.message : 'No se pudo eliminar la marca.';
+    }
   }
+
+  const isFirstEver = knownBrands.length === 0;
 
   return (
     <>
       <header className={s.cabecera}>
-        <div className={s.eyebrow}>{isCreating ? 'Nueva marca' : 'Perfil de marca'}</div>
+        <div className={s.eyebrow}>{creating ? 'Nueva marca' : 'Perfil de marca'}</div>
         <h1 className={s.titulo}>
-          {isCreating ? 'Define su voz.' : 'Tu voz, una sola vez.'}
+          {creating ? 'Define su voz.' : 'Tu voz, una sola vez.'}
         </h1>
         <p className={s.lead}>
-          {isFirstEver
-            ? 'Ocho respuestas cortas. Después la app escribe como escribes tú.'
-            : isCreating
-              ? 'Cada marca tiene su propia voz, sus palabras y sus prohibiciones.'
-              : 'Los cambios se aplican al contenido nuevo. Lo que ya guardaste no se toca.'}
+          {creating
+            ? isFirstEver
+              ? 'Ocho respuestas cortas. Después la app escribe como escribes tú.'
+              : 'Cada marca tiene su propia voz, sus palabras y sus prohibiciones.'
+            : 'Los cambios se aplican al contenido nuevo. Lo que ya guardaste no se toca.'}
         </p>
-
-        {/* Sin autenticación pueden convivir varias marcas en la misma base.
-            Sin esto, la app se quedaría atada a la primera. */}
-        {!isCreating && activeProfile && (
-          <div className={s.selector}>
-            {profiles.length > 1 && (
-              <>
-                <label htmlFor="cambiar-marca">Marca activa:</label>
-                <select
-                  id="cambiar-marca"
-                  className={s.select}
-                  value={activeProfile.id}
-                  onChange={(e) => void switchBrand(e.target.value)}
-                >
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.business_name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-            <button type="button" className={s.enlace} onClick={startNewBrand}>
-              + Nueva marca
-            </button>
-          </div>
-        )}
       </header>
 
-      {newKey && activeProfile && (
+      {newCode && activeProfile && (
         <div className={s.llaveNueva}>
-          <NewKeyPanel businessName={activeProfile.business_name} token={newKey} />
+          <NewKeyPanel businessName={activeProfile.business_name} code={newCode} />
           <button
             type="button"
             className={s.continuar}
             onClick={() => {
-              setNewKey(null);
+              setNewCode(null);
               navigate('/generar');
             }}
           >
-            Ya la guardé, vamos a generar
+            Ya lo guardé, vamos a generar
           </button>
         </div>
       )}
@@ -358,19 +335,13 @@ export function BrandPage() {
 
         <div className={s.acciones}>
           <button className={s.guardar} type="submit" disabled={saving}>
-            {saving
-              ? 'Guardando…'
-              : isFirstEver
-                ? 'Guardar mi voz'
-                : isCreating
-                  ? 'Crear marca'
-                  : 'Guardar cambios'}
+            {saving ? 'Guardando…' : creating ? 'Crear marca' : 'Guardar cambios'}
           </button>
-          {mode === 'nueva' && (
+          {creating && (
             <button
               type="button"
               className={s.cancelar}
-              onClick={cancelNewBrand}
+              onClick={() => navigate('/')}
               disabled={saving}
             >
               Cancelar
@@ -379,14 +350,24 @@ export function BrandPage() {
         </div>
       </form>
 
-      {!isCreating && activeProfile && (
-        <div className={s.seccionLlave}>
-          <KeySettings
-            businessName={activeProfile.business_name}
-            token={activeToken}
-            onRotate={handleRotate}
-          />
-        </div>
+      {!creating && activeProfile && (
+        <>
+          <div className={s.seccionLlave}>
+            <KeySettings
+              businessName={activeProfile.business_name}
+              code={activeCode}
+              onRotate={handleRotate}
+            />
+          </div>
+
+          <div className={s.seccionBorrado}>
+            <DeleteBrand
+              businessName={activeProfile.business_name}
+              pieceCount={pieceCount}
+              onDelete={handleDelete}
+            />
+          </div>
+        </>
       )}
 
       <Toast notice={notice} onClose={() => setNotice(null)} />

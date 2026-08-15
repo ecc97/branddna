@@ -1,16 +1,19 @@
 /*
   Raíz de la aplicación: enrutado y compuerta de estado.
 
-  Antes de mostrar ninguna pantalla hay que saber con qué marca se trabaja.
-  Como no hay autenticación, eso no es inmediato: hay que consultar la lista de
-  perfiles y decidir. Por eso <Contenido> filtra por estado antes de montar el
-  router de verdad.
+  Antes de mostrar la app hay que saber con qué marca se trabaja. Como no hay
+  cuentas de usuario, eso no es inmediato: hay que mirar qué marcas recuerda
+  este navegador y comprobar la recordada contra el servidor.
 
-  Los cuatro estados previos existen porque los cuatro son situaciones reales:
-    cargando      la primera consulta al backend
-    error         el backend está apagado o falla
-    sin-perfiles  primera vez: hay que crear la marca
-    eligiendo     hay varias marcas y ninguna recordada
+  Los cuatro estados existen porque los cuatro pasan de verdad:
+
+    loading    comprobando la marca recordada
+    error      el backend no responde
+    choosing   sin marca activa: elegir, entrar con código o crear
+    ready      hay marca activa y la app funciona
+
+  Nota de rendimiento: si este navegador no conoce ninguna marca, `choosing` se
+  alcanza **sin tocar la red**. La app abre al instante en el inicio.
 */
 
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
@@ -20,8 +23,8 @@ import { AppShell } from './components/AppShell';
 import { BrandPage } from './pages/BrandPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { GeneratePage } from './pages/GeneratePage';
+import { HomePage } from './pages/HomePage';
 import { PiecePage } from './pages/PiecePage';
-import { ProfilePicker } from './pages/ProfilePicker';
 import { ProfileProvider } from './profile/ProfileProvider';
 import { useProfile } from './profile/profile-context';
 import s from './App.module.css';
@@ -44,7 +47,7 @@ function AppRoutes() {
       <div className={s.pantalla}>
         <div className={s.caja}>
           <h1 className={s.titulo}>Un momento…</h1>
-          <p className={s.texto}>Buscando tu perfil de marca.</p>
+          <p className={s.texto}>Abriendo tu marca.</p>
         </div>
       </div>
     );
@@ -72,29 +75,31 @@ function AppRoutes() {
     );
   }
 
-  // Primera vez: la pantalla de marca sin barra de navegación, porque
-  // todavía no hay ningún sitio al que navegar.
-  if (state === 'no-profiles') {
+  /*
+    Sin marca activa no se monta la barra de navegación: no hay adónde navegar
+    todavía. Solo el inicio y el alta de una marca nueva.
+  */
+  if (state === 'choosing') {
     return (
-      <div className={s.alta}>
-        <BrandPage />
+      <div className={s.suelto}>
+        <Routes>
+          <Route path="/marca/nueva" element={<BrandPage creating />} />
+          <Route path="*" element={<HomePage />} />
+        </Routes>
       </div>
     );
-  }
-
-  if (state === 'choosing') {
-    return <ProfilePicker />;
   }
 
   return (
     <AppShell>
       <Routes>
-        <Route path="/" element={<Navigate to="/generar" replace />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/generar" element={<GeneratePage />} />
         <Route path="/calendario" element={<CalendarPage />} />
         <Route path="/pieza/:id" element={<PiecePage />} />
         <Route path="/marca" element={<BrandPage />} />
-        <Route path="*" element={<Navigate to="/generar" replace />} />
+        <Route path="/marca/nueva" element={<BrandPage creating />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>
   );

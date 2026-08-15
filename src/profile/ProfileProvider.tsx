@@ -1,168 +1,139 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import { ApiError, getProfile, setBrandToken, type BrandProfile } from '../api';
+import { buildAccessCode, parseAccessCode } from '../lib/access-code';
 import {
-  ApiError,
-  getProfile,
-  listProfiles,
-  setBrandToken,
-  type BrandProfile,
-  type BrandProfileSummary,
-} from '../api';
-import {
-  PROFILE_STORAGE_KEY,
-  ProfileContext,
-  TOKENS_STORAGE_KEY,
-  type ProfileState,
-} from './profile-context';
+  readActiveId,
+  readKnownBrands,
+  toBrandList,
+  writeActiveId,
+  writeKnownBrands,
+} from './brand-storage';
+import { ProfileContext, type ProfileState } from './profile-context';
 
-// --------------------------------------------------------------------------
-// Almacenamiento local
-//
-// Todo va envuelto en try/catch: en modo incógnito o con el almacenamiento
-// bloqueado, `localStorage` lanza excepción. La app debe seguir funcionando —
-// solo que al recargar habrá que volver a pegar la llave.
-// --------------------------------------------------------------------------
-function readStoredId(): string | null {
-  try {
-    return localStorage.getItem(PROFILE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function storeId(id: string | null): void {
-  try {
-    if (id) localStorage.setItem(PROFILE_STORAGE_KEY, id);
-    else localStorage.removeItem(PROFILE_STORAGE_KEY);
-  } catch {
-    /* sin persistencia, pero la sesión actual funciona */
-  }
-}
-
-function readStoredTokens(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(TOKENS_STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    // Si alguien manipuló la clave a mano, se descarta en vez de reventar.
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function storeTokens(tokens: Record<string, string>): void {
-  try {
-    localStorage.setItem(TOKENS_STORAGE_KEY, JSON.stringify(tokens));
-  } catch {
-    /* sin persistencia, pero la sesión actual funciona */
-  }
+/** Lo que devuelve abrir una marca, para que el llamante sepa qué hacer. */
+interface OpenResult {
+  /** Mensaje en español, o `null` si entró. */
+  message: string | null;
+  /** true si el problema fue de red, no de la llave. */
+  networkFailure: boolean;
 }
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ProfileState>('loading');
   const [error, setError] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<BrandProfileSummary[]>([]);
+  const [brands, setBrands] = useState(() => readKnownBrands());
   const [activeProfile, setActiveProfile] = useState<BrandProfile | null>(null);
   const [activeToken, setActiveToken] = useState<string | null>(null);
 
   /*
-    Las llaves van en una ref y no en el estado: cambian dentro de callbacks
-    que no deben volver a crearse por ello. `hasKeyFor` sí necesita provocar
-    un repintado cuando cambian, así que se lleva la cuenta aparte.
+    Las escrituras leen el estado actual de `localStorage` en vez de cerrar
+    sobre `brands`. Así no hay cierres obsoletos ni hace falta meter `brands`
+    en las dependencias de cada callback — y el almacenamiento sigue siendo la
+    única fuente de verdad, no una copia que pueda desincronizarse.
   */
-  const tokensRef = useRef<Record<string, string>>(readStoredTokens());
-  const [tokensVersion, setTokensVersion] = useState(0);
-
-  const rememberToken = useCallback((id: string, token: string) => {
-    tokensRef.current = { ...tokensRef.current, [id]: token };
-    storeTokens(tokensRef.current);
-    setTokensVersion((v) => v + 1);
+  const rememberBrand = useCallback((id: string, name: string, token: string) => {
+    const next = { ...readKnownBrands(), [id]: { name, token } };
+    writeKnownBrands(next);
+    setBrands(next);
   }, []);
 
-  const forgetToken = useCallback((id: string) => {
-    const { [id]: _removed, ...rest } = tokensRef.current;
-    tokensRef.current = rest;
-    storeTokens(rest);
-    setTokensVersion((v) => v + 1);
+  const forgetBrand = useCallback((id: string) => {
+    const { [id]: _removed, ...rest } = readKnownBrands();
+    writeKnownBrands(rest);
+    setBrands(rest);
+
+    // Si era la activa, se sale de ella: seguir dentro de una marca cuya llave
+    // acabamos de tirar dejaría la app en un estado imposible.
+    if (readActiveId() === id) {
+      writeActiveId(null);
+      setBrandToken(null);
+      setActiveProfile(null);
+      setActiveToken(null);
+      setState('choosing');
+    }
   }, []);
 
-  /** Abre una marca con una llave concreta. Devuelve el mensaje de error, o null. */
-  const openProfile = useCallback(
-    async (id: string, token: string, signal?: AbortSignal): Promise<string | null> => {
+  const openBrand = useCallback(
+    async (id: string, token: string, signal?: AbortSignal): Promise<OpenResult> => {
       try {
         const profile = await getProfile(id, { brandToken: token, signal });
         setBrandToken(token);
-        rememberToken(id, token);
-        storeId(id);
+        // El nombre se refresca en cada entrada: si lo cambiaron desde otro
+        // dispositivo, la lista local deja de estar desactualizada.
+        rememberBrand(id, profile.business_name, token);
+        writeActiveId(id);
         setActiveProfile(profile);
         setActiveToken(token);
         setState('ready');
-        return null;
+        return { message: null, networkFailure: false };
       } catch (failure) {
-        if (signal?.aborted) return null;
-        // 403 = la llave no vale. Se olvida: guardarla solo produciría el
-        // mismo error en cada recarga.
+        if (signal?.aborted) return { message: null, networkFailure: false };
+
         if (failure instanceof ApiError && failure.status === 403) {
-          forgetToken(id);
-          return 'Esa llave no corresponde a esta marca.';
+          // La llave dejó de valer: guardarla solo repetiría el error en cada
+          // recarga.
+          forgetBrand(id);
+          return {
+            message: 'Esa llave ya no abre esta marca. Puede que se haya rotado.',
+            networkFailure: false,
+          };
         }
-        return failure instanceof ApiError ? failure.message : 'No se pudo abrir la marca.';
+        if (failure instanceof ApiError && failure.status === 404) {
+          forgetBrand(id);
+          return { message: 'Esa marca ya no existe.', networkFailure: false };
+        }
+        return {
+          message:
+            failure instanceof ApiError ? failure.message : 'No se pudo abrir la marca.',
+          networkFailure: true,
+        };
       }
     },
-    [forgetToken, rememberToken]
+    [forgetBrand, rememberBrand]
   );
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
-      setState('loading');
       setError(null);
-      setBrandToken(null);
+      const known = readKnownBrands();
+      setBrands(known);
 
-      let list: BrandProfileSummary[];
-      try {
-        list = await listProfiles(signal);
-      } catch (failure) {
-        // En desarrollo, StrictMode monta el efecto dos veces y aborta el
-        // primero. Ese "fallo" no es un error real: se ignora.
-        if (signal?.aborted) return;
-        setError(failure instanceof Error ? failure.message : String(failure));
-        setState('error');
+      const ids = Object.keys(known);
+
+      /*
+        Sin marcas conocidas no se toca la red: la app abre al instante en el
+        inicio. Antes había que preguntar al servidor qué marcas existían
+        incluso para descubrir que este navegador no conocía ninguna.
+      */
+      if (ids.length === 0) {
+        setState('choosing');
         return;
       }
 
+      const lastId = readActiveId();
+      const target =
+        lastId && known[lastId] ? lastId : ids.length === 1 ? ids[0] : null;
+
+      // Varias marcas conocidas y ninguna recordada: que elija.
+      if (!target) {
+        setState('choosing');
+        return;
+      }
+
+      setState('loading');
+      const result = await openBrand(target, known[target].token, signal);
       if (signal?.aborted) return;
-      setProfiles(list);
 
-      if (list.length === 0) {
-        setActiveProfile(null);
-        setActiveToken(null);
-        setState('no-profiles');
-        return;
+      if (result.networkFailure) {
+        setError(result.message);
+        setState('error');
+      } else if (result.message) {
+        // La marca se olvidó (llave inválida o borrada): al inicio.
+        setState('choosing');
       }
-
-      const tokens = tokensRef.current;
-
-      // El id recordado solo vale si ese perfil sigue existiendo Y tenemos su
-      // llave. Sin llave no se puede entrar aunque recordemos el id.
-      const storedId = readStoredId();
-      const remembered = storedId ? list.find((p) => p.id === storedId) : undefined;
-      if (remembered && tokens[remembered.id]) {
-        if (!(await openProfile(remembered.id, tokens[remembered.id], signal))) return;
-        if (signal?.aborted) return;
-      }
-
-      // Con una sola marca cuya llave conocemos, no tiene sentido preguntar.
-      if (list.length === 1 && tokens[list[0].id]) {
-        if (!(await openProfile(list[0].id, tokens[list[0].id], signal))) return;
-        if (signal?.aborted) return;
-      }
-
-      storeId(null);
-      setActiveProfile(null);
-      setActiveToken(null);
-      setState('choosing');
     },
-    [openProfile]
+    [openBrand]
   );
 
   useEffect(() => {
@@ -171,67 +142,79 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => controller.abort();
   }, [load]);
 
-  const selectProfile = useCallback(
-    async (id: string, token?: string): Promise<string | null> => {
-      const key = token ?? tokensRef.current[id];
-      if (!key) return 'Necesitas la llave de acceso de esta marca.';
-      return openProfile(id, key);
+  const enterBrand = useCallback(
+    async (profileId: string): Promise<string | null> => {
+      const known = readKnownBrands()[profileId];
+      if (!known) return 'Este navegador no recuerda la llave de esa marca.';
+      return (await openBrand(profileId, known.token)).message;
     },
-    [openProfile]
+    [openBrand]
+  );
+
+  const enterWithCode = useCallback(
+    async (code: string): Promise<string | null> => {
+      const parsed = parseAccessCode(code);
+      if (!parsed) {
+        return 'Ese código no tiene el formato correcto. Cópialo entero, tal como te lo dimos.';
+      }
+      return (await openBrand(parsed.profileId, parsed.token)).message;
+    },
+    [openBrand]
   );
 
   const registerProfile = useCallback(
     (profile: BrandProfile, token?: string) => {
-      if (token) {
-        rememberToken(profile.id, token);
-        setBrandToken(token);
-        setActiveToken(token);
+      // Al actualizar no llega llave: se conserva la que ya se conocía, y de
+      // paso se refresca el nombre por si cambió.
+      const finalToken = token ?? readKnownBrands()[profile.id]?.token;
+      if (finalToken) {
+        rememberBrand(profile.id, profile.business_name, finalToken);
+        setBrandToken(finalToken);
+        setActiveToken(finalToken);
       }
-      storeId(profile.id);
+      writeActiveId(profile.id);
       setActiveProfile(profile);
-      setProfiles((current) => {
-        const summary = { id: profile.id, business_name: profile.business_name };
-        const exists = current.some((p) => p.id === profile.id);
-        return exists
-          ? current.map((p) => (p.id === profile.id ? summary : p))
-          : [summary, ...current];
-      });
       setState('ready');
     },
-    [rememberToken]
-  );
-
-  const hasKeyFor = useCallback(
-    (id: string) => {
-      void tokensVersion; // se re-evalúa cuando cambian las llaves
-      return Boolean(tokensRef.current[id]);
-    },
-    [tokensVersion]
+    [rememberBrand]
   );
 
   const reload = useCallback(() => void load(), [load]);
+
+  const knownBrands = useMemo(() => toBrandList(brands), [brands]);
+  const activeCode = useMemo(
+    () =>
+      activeProfile && activeToken
+        ? buildAccessCode(activeProfile.id, activeToken)
+        : null,
+    [activeProfile, activeToken]
+  );
 
   const value = useMemo(
     () => ({
       state,
       error,
-      profiles,
+      knownBrands,
       activeProfile,
       activeToken,
-      hasKeyFor,
-      selectProfile,
+      activeCode,
+      enterBrand,
+      enterWithCode,
       registerProfile,
+      forgetBrand,
       reload,
     }),
     [
       state,
       error,
-      profiles,
+      knownBrands,
       activeProfile,
       activeToken,
-      hasKeyFor,
-      selectProfile,
+      activeCode,
+      enterBrand,
+      enterWithCode,
       registerProfile,
+      forgetBrand,
       reload,
     ]
   );
