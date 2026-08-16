@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { ApiError, getProfile, setBrandToken, type BrandProfile } from '../api';
+import {
+  ApiError,
+  errorMessage,
+  getProfile,
+  setBrandToken,
+  type BrandProfile,
+} from '../api';
 import { buildAccessCode, parseAccessCode } from '../lib/access-code';
 import {
   readActiveId,
@@ -84,8 +90,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           return { message: 'Esa marca ya no existe.', networkFailure: false };
         }
         return {
-          message:
-            failure instanceof ApiError ? failure.message : 'No se pudo abrir la marca.',
+          message: errorMessage(failure, 'No se pudo abrir la marca.'),
           networkFailure: true,
         };
       }

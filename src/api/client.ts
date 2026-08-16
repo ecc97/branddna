@@ -65,6 +65,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Saca de un fallo el mensaje que se le puede enseñar al usuario.
+ *
+ * Lo que llega a un `catch` es `unknown`: puede ser un `ApiError` —que ya trae
+ * la frase en español lista— o cualquier otra cosa (un fallo de programación,
+ * un `TypeError`). En el segundo caso el mensaje original no sirve para
+ * enseñarlo, así que se usa el texto de respaldo de la pantalla, que sí sabe
+ * qué se estaba intentando hacer ("No se pudo guardar", "No se pudo generar…").
+ *
+ * Existe porque este ternario estaba repetido en nueve sitios. Reunirlo aquí
+ * deja un único lugar donde cambiar el criterio: si algún día hay que
+ * distinguir "sin conexión" de "servidor caído" —`ApiError.isServerFailure` ya
+ * lo permite— se toca esta función y no las nueve pantallas.
+ */
+export function errorMessage(failure: unknown, fallback: string): string {
+  return failure instanceof ApiError ? failure.message : fallback;
+}
+
 // --------------------------------------------------------------------------
 // Traducción de los errores de validación de FastAPI (422)
 // --------------------------------------------------------------------------

@@ -6,7 +6,7 @@
   pantallas.
 */
 
-export { ApiError, API_BASE_URL, setBrandToken } from './client';
+export { ApiError, API_BASE_URL, errorMessage, setBrandToken } from './client';
 
 export * from './types';
 export * from './labels';

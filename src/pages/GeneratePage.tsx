@@ -16,11 +16,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
-  ApiError,
   CHANNELS,
   PIECE_TYPES,
   PIECE_TYPE_LABELS,
   createPiece,
+  errorMessage,
   generateContent,
   type Channel,
   type GenerateResponse,
@@ -44,7 +44,7 @@ interface DisplayOption {
   id: string;
   approach: string;
   text: string;
-  editando: boolean;
+  editing: boolean;
 }
 
 export function GeneratePage() {
@@ -89,13 +89,11 @@ export function GeneratePage() {
           id: `${Date.now()}-${index}`,
           approach: option.approach,
           text: option.text,
-          editando: false,
+          editing: false,
         }))
       );
     } catch (failure) {
-      setError(
-        failure instanceof ApiError ? failure.message : 'No se pudo generar el contenido.'
-      );
+      setError(errorMessage(failure, 'No se pudo generar el contenido.'));
     } finally {
       setGenerating(false);
     }
@@ -122,7 +120,7 @@ export function GeneratePage() {
       });
     } catch (failure) {
       setNotice({
-        message: failure instanceof ApiError ? failure.message : 'No se pudo guardar.',
+        message: errorMessage(failure, 'No se pudo guardar.'),
         kind: 'error',
       });
     } finally {
@@ -136,7 +134,7 @@ export function GeneratePage() {
 
   function toggleEditing(id: string) {
     setOptions((current) =>
-      current.map((o) => (o.id === id ? { ...o, editando: !o.editando } : o))
+      current.map((o) => (o.id === id ? { ...o, editing: !o.editing } : o))
     );
   }
 
@@ -309,7 +307,7 @@ export function GeneratePage() {
                   </div>
                 </div>
 
-                {option.editando ? (
+                {option.editing ? (
                   <textarea
                     className={s.editor}
                     value={option.text}
@@ -358,7 +356,7 @@ export function GeneratePage() {
                     className={s.textual}
                     onClick={() => toggleEditing(option.id)}
                   >
-                    {option.editando ? 'Listo' : 'Editar'}
+                    {option.editing ? 'Listo' : 'Editar'}
                   </button>
                   <button className={s.descartar} onClick={() => discard(option.id)}>
                     Descartar

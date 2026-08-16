@@ -19,9 +19,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
-  ApiError,
   createProfile,
   deleteProfile,
+  errorMessage,
   listPieces,
   rotateToken,
   updateProfile,
@@ -174,9 +174,7 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
         setNotice({ message: 'Voz actualizada. Se aplica al contenido nuevo.' });
       }
     } catch (failure) {
-      setFormError(
-        failure instanceof ApiError ? failure.message : 'No se pudo guardar el perfil.'
-      );
+      setFormError(errorMessage(failure, 'No se pudo guardar el perfil.'));
     } finally {
       setSaving(false);
     }
@@ -189,7 +187,7 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
       registerProfile(activeProfile, access_token);
       return null;
     } catch (failure) {
-      return failure instanceof ApiError ? failure.message : 'No se pudo rotar el código.';
+      return errorMessage(failure, 'No se pudo rotar el código.');
     }
   }
 
@@ -203,7 +201,7 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
       navigate('/');
       return null;
     } catch (failure) {
-      return failure instanceof ApiError ? failure.message : 'No se pudo eliminar la marca.';
+      return errorMessage(failure, 'No se pudo eliminar la marca.');
     }
   }
 

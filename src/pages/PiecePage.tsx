@@ -38,6 +38,7 @@ import {
   STATUS_LABELS,
   updatePiece,
   deletePiece,
+  errorMessage,
   getPiece,
   type ContentPiece,
   type ContentPieceUpdate,
@@ -89,9 +90,7 @@ export function PiecePage() {
         setError(
           failure instanceof ApiError && failure.status === 404
             ? 'Esta pieza ya no existe. Puede que la hayas eliminado.'
-            : failure instanceof ApiError
-              ? failure.message
-              : 'No se pudo cargar la pieza.'
+            : errorMessage(failure, 'No se pudo cargar la pieza.')
         );
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -130,7 +129,7 @@ export function PiecePage() {
       setNotice({ message: 'Cambios guardados.' });
     } catch (failure) {
       setNotice({
-        message: failure instanceof ApiError ? failure.message : 'No se pudo guardar.',
+        message: errorMessage(failure, 'No se pudo guardar.'),
         kind: 'error',
       });
     } finally {
@@ -152,7 +151,7 @@ export function PiecePage() {
       setDeleting(false);
       setConfirmingDelete(false);
       setNotice({
-        message: failure instanceof ApiError ? failure.message : 'No se pudo eliminar.',
+        message: errorMessage(failure, 'No se pudo eliminar.'),
         kind: 'error',
       });
     }

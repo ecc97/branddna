@@ -15,12 +15,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import {
-  ApiError,
   CHANNEL_SHORT,
   PIECE_STATUSES,
   PIECE_TYPE_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
+  errorMessage,
   listPieces,
   type ContentPiece,
 } from '../api';
@@ -43,7 +43,7 @@ type CalendarView = 'mes' | 'semana';
 
 /** Primera línea del texto, para la vista previa. */
 function firstLineOf(piece: ContentPiece): string {
-  return piece.generated_text.split('\n').find((linea) => linea.trim()) ?? '';
+  return piece.generated_text.split('\n').find((line) => line.trim()) ?? '';
 }
 
 export function CalendarPage() {
@@ -66,9 +66,7 @@ export function CalendarPage() {
         setPieces(await listPieces(profile.id, signal));
       } catch (failure) {
         if (signal?.aborted) return;
-        setError(
-          failure instanceof ApiError ? failure.message : 'No se pudieron cargar las piezas.'
-        );
+        setError(errorMessage(failure, 'No se pudieron cargar las piezas.'));
       } finally {
         if (!signal?.aborted) setLoading(false);
       }
