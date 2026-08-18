@@ -54,7 +54,7 @@ export function HomePage() {
   }
 
   return (
-    <div className={s.inner}>
+    <div className={hasBrands ? s.inner : `${s.inner} ${s.intro}`}>
       <div className={s.eyebrow}>BrandDNA</div>
 
       {hasBrands ? (

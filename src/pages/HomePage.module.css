@@ -9,6 +9,42 @@
   margin: 0 auto;
 }
 
+/*
+  Modificador para el estado sin ninguna marca. Ese bloque —título,
+  descripción y acciones— es corto: quedaba pegado al borde superior con todo
+  el hueco debajo. Solo cambia su reparto vertical; el resto de estados usan
+  `.inner` a secas y no se enteran.
+*/
+.intro .titulo {
+  margin-top: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  /*
+    En pantallas altas el bloque se centra en el espacio que queda bajo
+    «BrandDNA», que se mantiene arriba. Los 88px son el relleno vertical del
+    contenedor de este estado (`.suelto`: 28px arriba + 60px abajo); restarlos
+    evita que aparezca barra de scroll.
+
+    Si el contenido crece —al abrir el formulario de código, o al aparecer un
+    error— deja de haber espacio sobrante, los márgenes automáticos valen cero
+    y el flujo vuelve a ser el de siempre.
+  */
+  .intro {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 88px);
+  }
+
+  .intro .titulo {
+    margin-top: auto;
+  }
+
+  .intro > :last-child {
+    margin-bottom: auto;
+  }
+}
+
 .eyebrow {
   font-size: 12px;
   letter-spacing: 0.14em;
