@@ -167,6 +167,8 @@ export function PiecePage() {
 
   return (
     <>
+      <title>Detalle de pieza — BrandDNA</title>
+      <meta name="robots" content="noindex, nofollow" />
       <button className={s.volver} onClick={goBack}>
         ← Volver al calendario
       </button>

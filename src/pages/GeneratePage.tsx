@@ -148,6 +148,8 @@ export function GeneratePage() {
 
   return (
     <>
+      <title>Generar contenido — BrandDNA</title>
+      <meta name="robots" content="noindex, nofollow" />
       <div className={s.eyebrow}>Generar</div>
       <h1 className={s.titulo}>¿Qué contamos hoy?</h1>
       <p className={s.firma}>

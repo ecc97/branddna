@@ -1,43 +1,104 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
-    <title>BrandDNA</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=Instrument+Serif:ital@0;1&display=swap"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>BrandDNA — Generador de contenido con voz de marca para pymes</title>
+  <meta name="description"
+    content="Define la voz de tu marca una vez y genera copies para Instagram, WhatsApp y Facebook con el mismo tono en segundos. Para pymes sin equipo de marketing." />
+  <meta name='keywords'
+    content='marca, contenido, generar, voz de marca, pymes, instagram, whatsapp, facebook, branddna' />
+  <link rel="canonical" href="https://www.branddna.lat/" />
 
-    <script>
-      /*
-        Se ejecuta antes de pintar nada, a propósito.
+  <!-- Open Graph / Twitter Card -->
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="es_ES" />
+  <meta property="og:site_name" content="BrandDNA" />
+  <meta property="og:url" content="https://www.branddna.lat/" />
+  <meta property="og:title" content="BrandDNA — Generador de contenido con voz de marca para pymes" />
+  <meta property="og:description"
+    content="Define la voz de tu marca una vez y genera copies para Instagram, WhatsApp y Facebook con el mismo tono en segundos." />
+  <meta property="og:image" content="https://www.branddna.lat/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/svg+xml" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BrandDNA — Generador de contenido con voz de marca para pymes" />
+  <meta name="twitter:description"
+    content="Define la voz de tu marca una vez y genera copies para Instagram, WhatsApp y Facebook con el mismo tono en segundos." />
+  <meta name="twitter:image" content="https://www.branddna.lat/og-image.svg" />
 
-        Si el tema se aplicara desde React, el navegador mostraría un instante
-        la app en claro antes de cambiar a oscuro. Ese parpadeo se ve y molesta.
-        Aquí el atributo ya está puesto cuando llega el primer pixel.
-      */
-      (function () {
-        try {
-          var guardado = localStorage.getItem('branddna-theme');
-          var prefiereOscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.setAttribute(
-            'data-theme',
-            guardado || (prefiereOscuro ? 'dark' : 'light')
-          );
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      })();
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "BrandDNA",
+        "url": "https://www.branddna.lat",
+        "logo": "https://www.branddna.lat/favicon.svg"
+      }
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "BrandDNA",
+        "url": "https://www.branddna.lat",
+        "inLanguage": "es"
+      }
+    </script>
+  <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "BrandDNA",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://www.branddna.lat",
+        "description": "Generador de contenido con voz de marca consistente para pymes sin equipo de marketing. Define tu voz una vez y genera copies para redes en segundos.",
+        "inLanguage": "es",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=Instrument+Serif:ital@0;1&display=swap"
+    rel="stylesheet" />
+
+  <script>
+    /*
+      Se ejecuta antes de pintar nada, a propósito.
+
+      Si el tema se aplicara desde React, el navegador mostraría un instante
+      la app en claro antes de cambiar a oscuro. Ese parpadeo se ve y molesta.
+      Aquí el atributo ya está puesto cuando llega el primer pixel.
+    */
+    (function () {
+      try {
+        var guardado = localStorage.getItem('branddna-theme');
+        var prefiereOscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute(
+          'data-theme',
+          guardado || (prefiereOscuro ? 'dark' : 'light')
+        );
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

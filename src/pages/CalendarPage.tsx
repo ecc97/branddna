@@ -128,6 +128,8 @@ export function CalendarPage() {
 
   return (
     <>
+      <title>Calendario — BrandDNA</title>
+      <meta name="robots" content="noindex, nofollow" />
       <div className={s.cabecera}>
         <div className={s.eyebrow}>Calendario</div>
         <div className={s.conmutador} role="group" aria-label="Vista del calendario">

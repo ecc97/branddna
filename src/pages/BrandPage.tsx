@@ -209,6 +209,24 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
 
   return (
     <>
+      {creating ? (
+        <>
+          <title>Crear marca — BrandDNA</title>
+          <meta
+            name="description"
+            content="Crea tu voz de marca en 8 campos: tono, público, palabras clave y prohibiciones. Después genera contenido consistente en segundos."
+          />
+          <meta name='keywords' content='marca, contenido, generar, voz de marca, pymes, instagram, whatsapp, facebook, branddna' />
+          <link rel="canonical" href="https://www.branddna.lat/marca/nueva" />
+          <meta property="og:title" content="Crear marca — BrandDNA" />
+          <meta property="og:url" content="https://www.branddna.lat/marca/nueva" />
+        </>
+      ) : (
+        <>
+          <title>Mi marca — BrandDNA</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </>
+      )}
       <header className={s.cabecera}>
         <div className={s.eyebrow}>{creating ? 'Nueva marca' : 'Perfil de marca'}</div>
         <h1 className={s.titulo}>
