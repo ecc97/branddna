@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/prerender.mjs",
     "dev": "vite",
     "lint": "oxlint",
     "preview": "vite preview",

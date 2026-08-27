@@ -1,0 +1,18 @@
+# BrandDNA
+
+> Generador de contenido con voz de marca consistente para pymes sin equipo de marketing. Define tu voz una vez y genera copies para redes en segundos, siempre con el mismo tono.
+
+BrandDNA es una web app donde una pyme define su voz de marca —tono, público, palabras propias y prohibiciones— una sola vez y a partir de ahí genera contenido para Instagram, WhatsApp, Facebook o blog en segundos. Cada generación produce 3 opciones con el perfil de marca como contexto fijo y control determinista de palabras prohibidas, y organiza lo aprobado en un calendario donde se ven los huecos sin contenido.
+
+Pensado para dueños de pymes y encargados de redes que hacen de todo y no tienen tiempo ni formación en marketing. La promesa es consistencia, no solo texto generado.
+
+## Páginas principales
+- [Inicio](https://www.branddna.lat/): Selector de marcas y entrada con código de acceso.
+- [Crear marca](https://www.branddna.lat/marca/nueva): Formulario de 8 campos para definir la voz de marca.
+- [Generador](https://www.branddna.lat/generar): Genera 3 opciones por canal y tipo de pieza (requiere marca activa).
+- [Calendario](https://www.branddna.lat/calendario): Vista mes/semana y bandeja sin programar (requiere marca activa).
+
+## Recursos
+- Documentación: https://github.com/ecc97/branddna/blob/main/docs
+
+_Fuente: PRD Generador de Contenido con Voz de Marca para Pymes + README del proyecto._
