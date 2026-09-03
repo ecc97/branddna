@@ -1,26 +1,3 @@
-/* --- Panel de marca recién creada: tiene que llamar la atención --- */
-.callout {
-  border: 1.5px solid var(--acc);
-  border-radius: var(--r-xl);
-  background: var(--acc-soft);
-  padding: var(--space-4);
-  animation: rise 0.35s ease both;
-}
-
-.calloutTitle {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--acc-t);
-  margin-bottom: 6px;
-}
-
-.calloutText {
-  font-size: 13.5px;
-  color: var(--t2);
-  line-height: 1.5;
-  margin-bottom: var(--space-3);
-}
-
 /* --- Sección dentro de «Mi marca» --- */
 .section {
   border: 1px solid var(--b1);

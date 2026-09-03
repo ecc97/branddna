@@ -16,7 +16,7 @@
 */
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import {
   createProfile,
@@ -27,10 +27,11 @@ import {
   updateProfile,
   type BrandProfile,
 } from '../api';
+import { AccessModal } from '../components/AccessModal';
 import { DeleteBrand } from '../components/DeleteBrand';
 import { TagInput } from '../components/TagInput';
 import { TextArea, TextInput } from '../components/TextInput';
-import { KeySettings, NewKeyPanel } from '../components/TokenPanel';
+import { KeySettings } from '../components/TokenPanel';
 import { ToneSelector } from '../components/ToneSelector';
 import { Toast, type Notice } from '../components/Toast';
 import { buildAccessCode } from '../lib/access-code';
@@ -87,6 +88,7 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
   const { activeProfile, activeCode, knownBrands, registerProfile, forgetBrand } =
     useProfile();
   const navigate = useNavigate();
+  const location = useLocation() as { state?: { newCode?: string } };
 
   const [form, setForm] = useState<BrandForm>(() =>
     creating || !activeProfile ? EMPTY_FORM : fromProfile(activeProfile)
@@ -99,6 +101,17 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
   const [newCode, setNewCode] = useState<string | null>(null);
   /** Cuántas piezas se perderían al borrar. `null` mientras se cuentan. */
   const [pieceCount, setPieceCount] = useState<number | null>(null);
+
+  /*
+    El código viaja en el `state` de la navegación a /marca. Hay que leerlo y
+    limpiarlo de forma explícita: si dependiera solo del estado inicial de
+    `useState`, un remontaje o una navegación entre rutas que reutilicen el
+    mismo elemento podrían perderlo o repetirlo.
+  */
+  useEffect(() => {
+    setNewCode(location.state?.newCode ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.newCode]);
 
   /*
     Al cambiar de marca activa el formulario pasa a mostrar la nueva. Se observa
@@ -120,6 +133,10 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
       .catch(() => setPieceCount(null));
     return () => controller.abort();
   }, [activeId, creating]);
+
+  useEffect(() => {
+    if (newCode) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [newCode]);
 
   function updateField<C extends keyof BrandForm>(field: C, value: BrandForm[C]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -163,10 +180,8 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
       if (creating) {
         const created = await createProfile(payload);
         registerProfile(created, created.access_token);
-        setForm(fromProfile(created));
-        // No se navega: primero hay que enseñar el código, porque es la única
-        // vez que existe en claro.
-        setNewCode(buildAccessCode(created.id, created.access_token));
+        const code = buildAccessCode(created.id, created.access_token);
+        navigate('/marca', { state: { newCode: code }, replace: true });
       } else {
         const saved = await updateProfile(activeProfile!.id, payload);
         registerProfile(saved);
@@ -242,19 +257,11 @@ export function BrandPage({ creating = false }: { creating?: boolean }) {
       </header>
 
       {newCode && activeProfile && (
-        <div className={s.llaveNueva}>
-          <NewKeyPanel businessName={activeProfile.business_name} code={newCode} />
-          <button
-            type="button"
-            className={s.continuar}
-            onClick={() => {
-              setNewCode(null);
-              navigate('/generar');
-            }}
-          >
-            Ya lo guardé, vamos a generar
-          </button>
-        </div>
+        <AccessModal
+          businessName={activeProfile.business_name}
+          code={newCode}
+          onClose={() => setNewCode(null)}
+        />
       )}
 
       <form className={s.formulario} onSubmit={submit} noValidate>

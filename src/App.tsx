@@ -83,7 +83,7 @@ function AppRoutes() {
     return (
       <div className={s.suelto}>
         <Routes>
-          <Route path="/marca/nueva" element={<BrandPage creating />} />
+          <Route path="/marca/nueva" element={<BrandPage key="crear" creating />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
@@ -97,8 +97,8 @@ function AppRoutes() {
         <Route path="/generar" element={<GeneratePage />} />
         <Route path="/calendario" element={<CalendarPage />} />
         <Route path="/pieza/:id" element={<PiecePage />} />
-        <Route path="/marca" element={<BrandPage />} />
-        <Route path="/marca/nueva" element={<BrandPage creating />} />
+        <Route path="/marca" element={<BrandPage key="editar" />} />
+        <Route path="/marca/nueva" element={<BrandPage key="crear" creating />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

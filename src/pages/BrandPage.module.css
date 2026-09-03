@@ -39,30 +39,6 @@
   background: var(--s2);
 }
 
-/* La llave recién emitida va ANTES del formulario: es lo primero que hay que
-   ver al crear la marca, porque no se vuelve a mostrar. */
-.llaveNueva {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-}
-
-.continuar {
-  padding: 14px;
-  border: none;
-  border-radius: var(--r-lg);
-  background: var(--acc);
-  color: var(--on-acc);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.continuar:hover {
-  background: var(--acc-h);
-}
-
 .seccionBorrado {
   margin-top: var(--space-5);
 }

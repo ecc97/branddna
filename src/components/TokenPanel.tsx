@@ -1,14 +1,13 @@
 /*
   El código de acceso de una marca, en pantalla.
 
-  Dos situaciones distintas y por eso dos componentes:
+  Este componente gestiona la situación de «Mi marca» (`KeySettings`): el
+  código está oculto tras un botón —no conviene dejarlo a la vista de quien
+  pase por detrás— y permite copiarlo o rotarlo.
 
-  - `NewKeyPanel`: acaba de crearse la marca. Es **la única vez** que el código
-    existe en claro, así que el panel es llamativo y ofrece copiar y descargar.
-    Después el backend solo guarda el hash de la llave: ni él mismo puede
-    volver a mostrarla.
-  - `KeySettings`: dentro de «Mi marca». Está oculto tras un botón —no conviene
-    dejarlo a la vista de quien pase por detrás— y permite copiarlo o rotarlo.
+  Cuando la marca acaba de crearse, el código se muestra una sola vez en un
+  modal aparte: `AccessModal` (porque desde entonces el backend solo guarda el
+  hash de la llave y ni él mismo puede volver a mostrarla).
 
   Se muestra el **código** (`id.llave`) y no la llave suelta porque es lo que el
   usuario necesita para entrar desde otro dispositivo: una sola cadena, sin
@@ -88,45 +87,6 @@ function CopyButton({ code, onFeedback }: CopyButtonProps) {
     >
       Copiar
     </button>
-  );
-}
-
-// --------------------------------------------------------------------------
-// Marca recién creada
-// --------------------------------------------------------------------------
-interface NewKeyPanelProps {
-  businessName: string;
-  code: string;
-}
-
-export function NewKeyPanel({ businessName, code }: NewKeyPanelProps) {
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-
-  return (
-    <div className={s.callout} role="status">
-      <div className={s.calloutTitle}>Este es el código de acceso de tu marca</div>
-      <p className={s.calloutText}>
-        Guárdalo ahora: <strong>no volvemos a mostrarlo</strong>. Lo necesitas para
-        entrar a «{businessName}» desde otro navegador. Este ya lo recuerda.
-      </p>
-
-      <code className={s.key}>{code}</code>
-
-      <div className={s.actions}>
-        <CopyButton code={code} onFeedback={setFeedback} />
-        <button
-          type="button"
-          className={s.button}
-          onClick={() => downloadKeyFile(businessName, code)}
-        >
-          Descargar .txt
-        </button>
-      </div>
-
-      {feedback && (
-        <div className={feedback.ok ? s.feedback : s.warning}>{feedback.message}</div>
-      )}
-    </div>
   );
 }
 
