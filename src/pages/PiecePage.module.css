@@ -163,6 +163,35 @@
   border-radius: var(--r-md);
 }
 
+/* --- Compartir en la red --- */
+.compartir {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--acc);
+  color: var(--on-acc);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compartir:hover:not(:disabled) {
+  background: var(--acc-h);
+}
+
+.compartir:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.compartirPista {
+  margin-top: var(--space-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--t5);
+}
+
 /* --- Zona de borrado --- */
 .zonaBorrado {
   margin-top: var(--space-6);

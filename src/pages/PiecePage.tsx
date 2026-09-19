@@ -46,6 +46,7 @@ import {
 } from '../api';
 import { DateStepper } from '../components/DateStepper';
 import { findForbidden } from '../lib/forbidden';
+import { copyAndOpen } from '../lib/share';
 import { Toast, type Notice } from '../components/Toast';
 import { useActiveProfile } from '../profile/profile-context';
 import s from './PiecePage.module.css';
@@ -65,6 +66,7 @@ export function PiecePage() {
   const [date, setDate] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -165,6 +167,33 @@ export function PiecePage() {
     navigate('/calendario');
   }
 
+  /*
+    Comparte el texto que el usuario ve en el editor (el borrador), no el
+    guardado: si acaba de corregir una palabra prohibida, eso es lo que se
+    lleva a la red.
+  */
+  async function share() {
+    if (!piece) return;
+    setSharing(true);
+    try {
+      const ok = await copyAndOpen(piece.channel, text);
+      if (ok) {
+        setNotice(
+          piece.channel === 'WhatsApp'
+            ? { message: 'WhatsApp se abre con el mensaje listo.' }
+            : { message: 'Texto copiado: ya solo queda pegarlo en la red.' }
+        );
+      } else {
+        setNotice({
+          message: 'No se pudo copiar el texto. Pégalo a mano desde el editor.',
+          kind: 'error',
+        });
+      }
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <>
       <title>Detalle de pieza — BrandDNA</title>
@@ -248,6 +277,22 @@ export function PiecePage() {
             <div className={s.seccionTitulo}>Fecha programada</div>
             <DateStepper value={date} onChange={setDate} />
           </section>
+
+          {piece.channel !== 'Blog' && (
+            <section className={s.seccion}>
+              <div className={s.seccionTitulo}>Publicar</div>
+              <button className={s.compartir} onClick={share} disabled={sharing}>
+                {piece.channel === 'WhatsApp'
+                  ? 'Enviar por WhatsApp'
+                  : `Copiar y abrir ${piece.channel}`}
+              </button>
+              <div className={s.compartirPista}>
+                {piece.channel === 'WhatsApp'
+                  ? 'Abre el selector de contactos con el mensaje listo. No publica directo a un Estado.'
+                  : 'Copias el texto y se abre la red: te queda pegarlo.'}
+              </div>
+            </section>
+          )}
 
           {hasChanges ? (
             <div className={s.barra}>
