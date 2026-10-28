@@ -4,15 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "node api.js && tsc -b && vite build",
+    "build": "node init && tsc -b && vite build",
     "postbuild": "node scripts/prerender.mjs",
-    "dev": "node api.js && vite",
+    "dev": "node init && vite",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "dotenv": "^8.2.0",
+    "node-fetch": "^3.3.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.3.0"
