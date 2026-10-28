@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "node api.js && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "postbuild": "node scripts/prerender.mjs",
-    "dev": "node api.js && vite",
+    "dev": "vite",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
